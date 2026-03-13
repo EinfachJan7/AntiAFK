@@ -1,0 +1,56 @@
+# Gradle
+.gradle
+build/
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# JAR/Archive files (but keep .gitignore)
+*.jar
+*.war
+*.rar
+
+# Logs
+*.log
+logs/
+
+# Local development
+.env
+local.properties
+
+# Misc
+*.swp
+*.swo
+*~
+.cache/

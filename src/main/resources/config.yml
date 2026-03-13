@@ -1,0 +1,57 @@
+# ====================================
+# AntiAFK Plugin Configuration
+# ====================================
+
+# Aktiviere/Deaktiviere das Plugin
+enabled: true
+
+# ====================================
+# AFK EINSTELLUNGEN
+# ====================================
+
+# Zeit in Sekunden bis ein Spieler als AFK gilt
+# Standard: 300 = 5 Minuten
+afk-timeout: 300
+
+# Überprüfungsintervall in Sekunden
+# Wie oft soll das Plugin prüfen ob Spieler AFK sind
+check-interval: 20
+
+# ====================================
+# BEFEHLE
+# ====================================
+
+# Befehl wenn Spieler AFK wird (einmalig)
+# Variablen: %player% = Spielername, %uuid% = Spieler UUID
+# Beispiele:
+#   - "say <red>%player% ist AFK"
+#   - "kick %player% AFK"
+#   - "tp %player% 0 0 0"
+command: "afk"
+
+# Befehl wenn Spieler NICHT MEHR AFK ist (verlässt AFK-Status)
+# Wird nur ausgeführt wenn Spieler sich bewegt und war davor AFK
+# Variablen: %player%, %uuid%
+command-back: "back"
+
+# ====================================
+# NACHRICHTEN (Kommandos)
+# ====================================
+
+# Status Befehle (/antiafk status)
+status-message-header: "<#E0BBE4>=== AntiAFK Status ==="
+status-message-enabled: "<#BAFFC9>Status: <#90EE90>AKTIV"
+status-message-disabled: "<#FFB3BA>Status: <#FF6B6B>DEAKTIV"
+status-message-timeout: "<#BAE1FF>AFK-Timeout: <#FFFFBA>%timeout% Sekunden"
+status-message-interval: "<#BAE1FF>Check-Interval: <#FFFFBA>%interval% Sekunden"
+status-message-players: "<#BAE1FF>Online Spieler: <#FFFFBA>%players%"
+
+# Reload Befehle (/antiafk reload)
+reload-success: "<#BAFFC9>✓ AntiAFK Config reloaded!"
+reload-error: "<#FFB3BA>✗ Fehler beim Reload!"
+
+# Hilfe Befehle
+help-status: "<#FFFFBA>/antiafk <#BAE1FF>- Zeigt Status"
+help-reload: "<#FFFFBA>/antiafk reload <#BAE1FF>- Lädt Config neu"
+help-check: "<#FFFFBA>/antiafk check <Spieler> <#BAE1FF>- Prüft AFK-Zeit"
+no-permission: "<#FFB3BA>Keine Berechtigung!"
