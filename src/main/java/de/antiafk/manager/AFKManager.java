@@ -54,7 +54,7 @@ public class AFKManager {
         int x = loc.getBlockX();
         int y = loc.getBlockY();
         int z = loc.getBlockZ();
-        
+
         // Erweiterte Suche: Prüfbereich 3x3x3 um den Spieler
         for (int dx = -1; dx <= 1; dx++) {
             for (int dy = -2; dy <= 1; dy++) {
@@ -66,7 +66,7 @@ public class AFKManager {
                 }
             }
         }
-        
+
         return false;
     }
 
@@ -87,25 +87,31 @@ public class AFKManager {
 
     /**
      * Markiert dass Spieler echte Input-Bewegung ausgeführt hat (WASD, Springen, etc.)
+     * Löst den Back-Command aus wenn Spieler vorher AFK war.
      */
     public void markPlayerInputMovement(Player player) {
         UUID uuid = player.getUniqueId();
         lastMovementTime.put(uuid, System.currentTimeMillis());
-        
-        // Wenn AFK-Timer läuft: resetten bei echtem Input
-        if (afkStartTime.containsKey(uuid)) {
-            afkStartTime.remove(uuid);
-            afkCommandExecuted.remove(uuid);
-            debug("Echte Spielerbewegung für " + player.getName() + " - AFK-Status RESETTET");
+
+        // Back-Command auslösen wenn Spieler AFK war und sich jetzt bewegt
+        // WICHTIG: Prüfung VOR dem Löschen von afkCommandExecuted
+        if (afkCommandExecuted.getOrDefault(uuid, false)) {
+            debug("Spieler " + player.getName() + " war AFK und bewegt sich - Back-Command wird ausgelöst");
+            executeBackCommand(player);
         }
+
+        // AFK-Status zurücksetzen
+        afkStartTime.remove(uuid);
+        afkCommandExecuted.remove(uuid);
+        debug("Echte Spielerbewegung für " + player.getName() + " - AFK-Status RESETTET");
     }
-    
+
     /**
      * Prüft ob ein Block ein Piston ist oder ein Block, der von Pistons bewegt wird (EXTENDED oder RETRACTED)
      */
     private boolean isPistonBlock(Block block) {
         Material type = block.getType();
-        return type == Material.PISTON || type == Material.STICKY_PISTON || 
+        return type == Material.PISTON || type == Material.STICKY_PISTON ||
                type == Material.PISTON_HEAD ||
                type == Material.SLIME_BLOCK ||  // Slime blocks werden oft mit Pistons bewegt
                type == Material.HONEY_BLOCK;    // Honey blocks auch
@@ -119,13 +125,13 @@ public class AFKManager {
         if (!externalForceTime.containsKey(uuid)) {
             return false;
         }
-        
+
         long elapsed = System.currentTimeMillis() - externalForceTime.get(uuid);
         if (elapsed > EXTERNAL_FORCE_COOLDOWN) {
             externalForceTime.remove(uuid);
             return false;
         }
-        
+
         debug(player.getName() + " unter externe Kraft (Knockback/Velocity) - Cooldown: " + elapsed + "ms");
         return true;
     }
@@ -145,9 +151,9 @@ public class AFKManager {
         boolean onPiston = isPlayerOnPiston(player);
         boolean inVehicle = player.isInsideVehicle();
         boolean underForce = isUnderExternalForce(player);
-        
+
         boolean isExternal = inLiquid || onPiston || inVehicle || underForce;
-        
+
         if (isExternal) {
             String reason = "";
             if (inLiquid) reason += "[LIQUID] ";
@@ -156,7 +162,7 @@ public class AFKManager {
             if (underForce) reason += "[VELOCITY] ";
             debug("External Movement: " + player.getName() + " " + reason);
         }
-        
+
         return isExternal;
     }
 
@@ -184,16 +190,12 @@ public class AFKManager {
 
         // Vergleiche X, Y, Z (ignoriere Rotation)
         double distance = lastPos.distance(currentPos);
-        
+
         // Wenn Spieler sich bewegt hat
         if (distance > 0.5) {
-            // Prüfe ob Spieler war AFK und ist jetzt aktiv
-            if (afkStartTime.containsKey(uuid) && afkCommandExecuted.getOrDefault(uuid, false)) {
-                executeBackCommand(player);
-            }
             return true;
         }
-        
+
         return false;
     }
 
@@ -219,19 +221,19 @@ public class AFKManager {
         // Prüfe ob Timeout erreicht ist
         long afkTime = (System.currentTimeMillis() - afkStartTime.get(uuid)) / 1000;
         long timeout = configManager.getAfkTimeout();
-        
+
         if (afkTime >= timeout) {
-            debug("PLAYER AFK! " + player.getName() + 
+            debug("PLAYER AFK! " + player.getName() +
                 " - Stillstandszeit: " + afkTime + "s >= " + timeout + "s");
             return true;
         }
-        
-        // Debug: Zeige fortschritt an (alle 30s)
+
+        // Debug: Zeige Fortschritt an (alle 30s)
         if (afkTime % 30 == 0 && afkTime > 0) {
-            debug(player.getName() + 
+            debug(player.getName() +
                 " immer noch still: " + afkTime + "s / " + timeout + "s");
         }
-        
+
         return false;
     }
 
@@ -240,9 +242,10 @@ public class AFKManager {
      */
     public void executeAFKCommand(Player player) {
         UUID uuid = player.getUniqueId();
-        
+
         // Prüfe ob Befehl bereits ausgeführt wurde
         if (afkCommandExecuted.getOrDefault(uuid, false)) {
+            debug("AFK-Command für " + player.getName() + " wurde bereits ausgeführt (Skip)");
             return;
         }
 
@@ -250,10 +253,17 @@ public class AFKManager {
                 .replace("%player%", player.getName())
                 .replace("%uuid%", player.getUniqueId().toString());
 
-        // Unterstütze MiniMessage Tags wie <red>, <bold>, etc.
+        // Entferne Slash am Anfang falls vorhanden
+        if (command.startsWith("/")) {
+            command = command.substring(1);
+        }
+
+        // Führe Command vom Spieler aus
         try {
+            debug("Führe AFK-Command aus für " + player.getName() + ": " + command);
             player.performCommand(command);
             afkCommandExecuted.put(uuid, true);  // Markiere als ausgeführt
+            debug("AFK-Command erfolgreich ausgelöst für " + player.getName());
         } catch (Exception e) {
             plugin.getLogger().warning("Fehler beim Ausführen des AFK-Befehls für " + player.getName());
             e.printStackTrace();
@@ -261,17 +271,29 @@ public class AFKManager {
     }
 
     /**
-     * Führt Back-Befehl aus wenn Spieler nicht mehr AFK ist
+     * Führt Back-Befehl aus wenn Spieler nicht mehr AFK ist.
+     * Wird nur aufgerufen wenn afkCommandExecuted == true (Spieler war wirklich AFK).
      */
     public void executeBackCommand(Player player) {
-        UUID uuid = player.getUniqueId();
-        
         String command = configManager.getCommandBack()
                 .replace("%player%", player.getName())
                 .replace("%uuid%", player.getUniqueId().toString());
 
+        if (command.isEmpty()) {
+            debug("Back-Command ist leer - wird übersprungen");
+            return;
+        }
+
+        // Entferne Slash am Anfang falls vorhanden
+        if (command.startsWith("/")) {
+            command = command.substring(1);
+        }
+
+        // Führe Command vom Spieler aus
         try {
+            debug("Führe Back-Command aus für " + player.getName() + ": " + command);
             player.performCommand(command);
+            debug("Back-Command erfolgreich ausgelöst für " + player.getName());
         } catch (Exception e) {
             plugin.getLogger().warning("Fehler beim Ausführen des Back-Befehls für " + player.getName());
             e.printStackTrace();
@@ -295,7 +317,7 @@ public class AFKManager {
                 }
             }
         }, checkInterval, checkInterval);
-        
+
         // Starte auch Tick-Polling für passive Piston-Erkennung
         startTickPollingTask();
     }
@@ -363,7 +385,7 @@ public class AFKManager {
      */
     public long getPlayerAFKTime(Player player) {
         UUID uuid = player.getUniqueId();
-        
+
         if (!afkStartTime.containsKey(uuid)) {
             return -1;
         }
@@ -377,7 +399,7 @@ public class AFKManager {
      */
     public long getPlayerStillTime(Player player) {
         UUID uuid = player.getUniqueId();
-        
+
         if (!lastMovementTime.containsKey(uuid)) {
             return 0;
         }
