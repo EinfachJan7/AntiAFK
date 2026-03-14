@@ -4,6 +4,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import de.antiafk.manager.AFKManager;
 import de.antiafk.manager.ConfigManager;
 import de.antiafk.listener.PlayerMoveListener;
+import de.antiafk.listener.PistonListener;
 import de.antiafk.command.AntiAFKCommand;
 
 public class AntiAFK extends JavaPlugin {
@@ -22,6 +23,7 @@ public class AntiAFK extends JavaPlugin {
 
         // Listener registrieren
         getServer().getPluginManager().registerEvents(new PlayerMoveListener(afkManager, configManager), this);
+        getServer().getPluginManager().registerEvents(new PistonListener(afkManager, configManager), this);
 
         // Command registrieren
         AntiAFKCommand command = new AntiAFKCommand(this, afkManager, configManager);

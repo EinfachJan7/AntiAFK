@@ -2,12 +2,15 @@ package de.antiafk.listener;
 
 import de.antiafk.manager.AFKManager;
 import de.antiafk.manager.ConfigManager;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerVelocityEvent;
 
 public class PlayerMoveListener implements Listener {
 
@@ -19,17 +22,58 @@ public class PlayerMoveListener implements Listener {
         this.configManager = configManager;
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerMove(PlayerMoveEvent event) {
         if (!configManager.isEnabled()) {
             return;
         }
 
         Player player = event.getPlayer();
+        Location from = event.getFrom();
+        Location to = event.getTo();
 
-        // Trample nur echte Bewegungen (ignoriere kleine Abweichungen)
-        if (event.getFrom().distance(event.getTo()) > 0.1) {
-            afkManager.recordPosition(player);
+        // Prüfe ob Block-Position sich geändert hat
+        boolean blockPosChanged = from.getBlockX() != to.getBlockX()
+                              || from.getBlockY() != to.getBlockY()
+                              || from.getBlockZ() != to.getBlockZ();
+
+        if (!blockPosChanged) {
+            // Nur Rotation, keine Positionsänderung → ignorieren
+            return;
+        }
+
+        double distance = from.distance(to);
+
+        // Ignoriere sehr kleine Bewegungen (< 0.1m)
+        if (distance < 0.1) {
+            return;
+        }
+
+        // Prüfe ob externe Kraft wirkt (Piston, Knockback, Fahrzeug, etc.)
+        if (afkManager.isPlayerInExternalMovement(player)) {
+            return;
+        }
+
+        // Echte Spielerbewegung erkannt
+        afkManager.markPlayerInputMovement(player);
+        afkManager.recordPosition(player);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerVelocity(PlayerVelocityEvent event) {
+        if (!configManager.isEnabled()) {
+            return;
+        }
+
+        Player player = event.getPlayer();
+        
+        // Markiere dass Spieler externe Kraft erhielt (Knockback, Plugin-Effects, etc.)
+        // Relevante Velocities sind > 0.1 block/tick
+        double velocity = event.getVelocity().length();
+        if (velocity > 0.1) {
+            afkManager.markUnderExternalForce(player);
+            afkManager.debug(player.getName() + " erhielt Velocity: " + 
+                String.format("%.3f", velocity) + " blocks/tick (externe Kraft)");
         }
     }
 

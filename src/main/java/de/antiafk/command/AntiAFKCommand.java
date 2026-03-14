@@ -10,12 +10,10 @@ import org.bukkit.command.CommandSender;
 
 public class AntiAFKCommand implements CommandExecutor {
 
-    private final AntiAFK plugin;
     private final AFKManager afkManager;
     private final ConfigManager configManager;
 
     public AntiAFKCommand(AntiAFK plugin, AFKManager afkManager, ConfigManager configManager) {
-        this.plugin = plugin;
         this.afkManager = afkManager;
         this.configManager = configManager;
     }
@@ -44,10 +42,13 @@ public class AntiAFKCommand implements CommandExecutor {
                 return true;
             }
             checkPlayerAFK(sender, args[1]);
+        } else if (subCommand.equals("debug")) {
+            toggleDebug(sender);
         } else {
             sender.sendMessage(configManager.getHelpStatus());
             sender.sendMessage(configManager.getHelpReload());
             sender.sendMessage("<#FFFFBA>/antiafk check <Spieler> <#90EE90>- Prüft wie lange der Spieler AFK ist");
+            sender.sendMessage("<#FFFFBA>/antiafk debug <#90EE90>- Toggled Debug-Modus AN/AUS");
         }
 
         return true;
@@ -87,25 +88,40 @@ public class AntiAFKCommand implements CommandExecutor {
         }
 
         long afkTime = afkManager.getPlayerAFKTime(targetPlayer);
+        long stillTime = afkManager.getPlayerStillTime(targetPlayer);
+
+        // Formatiere Stillstandszeit
+        long stillSeconds = stillTime % 60;
+        long stillMinutes = (stillTime / 60) % 60;
+        long stillHours = stillTime / 3600;
+
+        StringBuilder stillTimeStr = new StringBuilder();
+        if (stillHours > 0) {
+            stillTimeStr.append(stillHours).append("h ");
+        }
+        if (stillMinutes > 0) {
+            stillTimeStr.append(stillMinutes).append("m ");
+        }
+        stillTimeStr.append(stillSeconds).append("s");
+
+        // Angezeige Status
+        sender.sendMessage("<#E0BBE4>━━━ Spieler Info: <#FFFFBA>" + targetPlayer.getName() + " <#E0BBE4>━━━");
+        sender.sendMessage("<#BAE1FF>⏱ Stillstandszeit: <#FFFFBA>" + stillTimeStr.toString());
         
-        if (afkTime == -1) {
-            sender.sendMessage("<#BAE1FF>ℹ Spieler <#E0BBE4>" + targetPlayer.getName() + " <#BAE1FF>ist nicht AFK");
-            return;
+        long timeout = configManager.getAfkTimeout();
+        if (stillTime >= timeout) {
+            sender.sendMessage("<#FFB3BA>⚠ Status: <#FF6B6B>AFK");
+        } else {
+            sender.sendMessage("<#BAFFC9>✓ Status: <#90EE90>AKTIV");
         }
+    }
 
-        long seconds = afkTime % 60;
-        long minutes = (afkTime / 60) % 60;
-        long hours = afkTime / 3600;
-
-        StringBuilder timeStr = new StringBuilder();
-        if (hours > 0) {
-            timeStr.append(hours).append("h ");
+    private void toggleDebug(CommandSender sender) {
+        afkManager.toggleDebug();
+        if (afkManager.isDebugEnabled()) {
+            sender.sendMessage("<#BAFFC9>✓ Debug-Modus: <#90EE90>AKTIVIERT");
+        } else {
+            sender.sendMessage("<#FFB3BA>✗ Debug-Modus: <#FF6B6B>DEAKTIVIERT");
         }
-        if (minutes > 0) {
-            timeStr.append(minutes).append("m ");
-        }
-        timeStr.append(seconds).append("s");
-
-        sender.sendMessage("<#BAFFC9>✓ <#E0BBE4>" + targetPlayer.getName() + " <#BAFFC9>ist seit <#FFFFBA>" + timeStr.toString() + " <#BAFFC9>AFK");
     }
 }

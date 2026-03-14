@@ -11,11 +11,11 @@ enabled: true
 
 # Zeit in Sekunden bis ein Spieler als AFK gilt
 # Standard: 300 = 5 Minuten
-afk-timeout: 300
+afk-timeout: 1200
 
 # Überprüfungsintervall in Sekunden
 # Wie oft soll das Plugin prüfen ob Spieler AFK sind
-check-interval: 20
+check-interval: 1
 
 # ====================================
 # BEFEHLE
@@ -55,3 +55,4 @@ help-status: "<#FFFFBA>/antiafk <#BAE1FF>- Zeigt Status"
 help-reload: "<#FFFFBA>/antiafk reload <#BAE1FF>- Lädt Config neu"
 help-check: "<#FFFFBA>/antiafk check <Spieler> <#BAE1FF>- Prüft AFK-Zeit"
 no-permission: "<#FFB3BA>Keine Berechtigung!"
+
