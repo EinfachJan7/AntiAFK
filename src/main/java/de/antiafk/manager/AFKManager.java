@@ -188,6 +188,12 @@ public class AFKManager {
         Location lastPos = lastValidPosition.get(uuid);
         Location currentPos = player.getLocation();
 
+        // Wenn Spieler in eine andere Welt teleportiert wurde, Position aktualisieren
+        if (!lastPos.getWorld().equals(currentPos.getWorld())) {
+            recordPosition(player);
+            return false;
+        }
+
         // Vergleiche X, Y, Z (ignoriere Rotation)
         double distance = lastPos.distance(currentPos);
 

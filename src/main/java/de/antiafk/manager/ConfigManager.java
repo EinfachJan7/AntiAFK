@@ -14,6 +14,8 @@ public class ConfigManager {
     }
 
     public void reloadConfig() {
+        // Regeneriere Config falls sie fehlt
+        plugin.saveDefaultConfig();
         plugin.reloadConfig();
         this.config = plugin.getConfig();
     }
