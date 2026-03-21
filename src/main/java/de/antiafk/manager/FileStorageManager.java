@@ -180,6 +180,64 @@ public class FileStorageManager {
     }
 
     /**
+     * Gibt die AFK-Zeit eines Spielers (nach Name) für PlaceholderAPI zurück
+     */
+    public Optional<String> getPlayerAFKTime(String playerName) {
+        for (PlayerStatsData stats : playerStats.values()) {
+            if (stats.playerName != null && stats.playerName.equalsIgnoreCase(playerName)) {
+                return Optional.of(formatTime(stats.totalAFKTime));
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Gibt die AFK-Anzahl eines Spielers (nach Name) für PlaceholderAPI zurück
+     */
+    public Optional<String> getPlayerAFKCount(String playerName) {
+        for (PlayerStatsData stats : playerStats.values()) {
+            if (stats.playerName != null && stats.playerName.equalsIgnoreCase(playerName)) {
+                return Optional.of(String.valueOf(stats.afkCount));
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Gibt das letzte AFK-Datum eines Spielers (nach Name) für PlaceholderAPI zurück
+     */
+    public Optional<String> getPlayerLastAFKDate(String playerName) {
+        for (PlayerStatsData stats : playerStats.values()) {
+            if (stats.playerName != null && stats.playerName.equalsIgnoreCase(playerName)) {
+                if (stats.lastAFKDate > 0) {
+                    return Optional.of(new Date(stats.lastAFKDate).toString());
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Formatiert Sekunden in ein lesbares Format
+     */
+    private String formatTime(long seconds) {
+        if (seconds < 60) {
+            return seconds + " Sekunden";
+        } else if (seconds < 3600) {
+            long minutes = seconds / 60;
+            return minutes + " Minuten";
+        } else if (seconds < 86400) {
+            long hours = seconds / 3600;
+            long minutes = (seconds % 3600) / 60;
+            return hours + "h " + minutes + "m";
+        } else {
+            long days = seconds / 86400;
+            long hours = (seconds % 86400) / 3600;
+            return days + "d " + hours + "h";
+        }
+    }
+
+    /**
      * Datenklasse für Spielerstatistiken
      */
     public static class PlayerStatsData {

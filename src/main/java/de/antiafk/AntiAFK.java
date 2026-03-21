@@ -6,6 +6,7 @@ import de.antiafk.manager.ConfigManager;
 import de.antiafk.manager.DatabaseManager;
 import de.antiafk.manager.FileStorageManager;
 import de.antiafk.manager.DataConverter;
+import de.antiafk.placeholder.AFKPlaceholder;
 import de.antiafk.listener.PlayerMoveListener;
 import de.antiafk.listener.PistonListener;
 import de.antiafk.command.AntiAFKCommand;
@@ -58,6 +59,12 @@ public class AntiAFK extends JavaPlugin implements Listener {
         AntiAFKCommand command = new AntiAFKCommand(this, afkManager, configManager, databaseManager, fileStorageManager, dataConverter);
         getCommand("antiafk").setExecutor(command);
         getCommand("antiafk").setTabCompleter(command);
+
+        // PlaceholderAPI registrieren (wenn verfügbar)
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new AFKPlaceholder(fileStorageManager, databaseManager, configManager.isDatabaseEnabled()).register();
+            getLogger().info("PlaceholderAPI Integration aktiviert!");
+        }
 
         // AFK Check Task starten
         afkManager.startAfkCheckTask();

@@ -306,4 +306,84 @@ public class DatabaseManager {
 
         return result.toString();
     }
+
+    /**
+     * Gibt die AFK-Zeit eines Spielers (nach Name) für PlaceholderAPI zurück
+     */
+    public Optional<String> getPlayerAFKTime(String playerName) {
+        if (!isConnected) {
+            return Optional.empty();
+        }
+
+        try (Connection conn = dataSource.getConnection()) {
+            String query = "SELECT total_afk_time FROM afk_statistics WHERE player_name = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, playerName);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        long seconds = rs.getLong("total_afk_time");
+                        return Optional.of(formatTime(seconds));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Fehler beim Abrufen von AFK-Zeit für " + playerName + ": " + e.getMessage());
+        }
+
+        return Optional.empty();
+    }
+
+    /**
+     * Gibt die AFK-Anzahl eines Spielers (nach Name) für PlaceholderAPI zurück
+     */
+    public Optional<String> getPlayerAFKCount(String playerName) {
+        if (!isConnected) {
+            return Optional.empty();
+        }
+
+        try (Connection conn = dataSource.getConnection()) {
+            String query = "SELECT afk_count FROM afk_statistics WHERE player_name = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, playerName);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        return Optional.of(String.valueOf(rs.getInt("afk_count")));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Fehler beim Abrufen von AFK-Anzahl für " + playerName + ": " + e.getMessage());
+        }
+
+        return Optional.empty();
+    }
+
+    /**
+     * Gibt das letzte AFK-Datum eines Spielers (nach Name) für PlaceholderAPI zurück
+     */
+    public Optional<String> getPlayerLastAFKDate(String playerName) {
+        if (!isConnected) {
+            return Optional.empty();
+        }
+
+        try (Connection conn = dataSource.getConnection()) {
+            String query = "SELECT last_afk_date FROM afk_statistics WHERE player_name = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, playerName);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        Timestamp ts = rs.getTimestamp("last_afk_date");
+                        if (ts != null) {
+                            return Optional.of(ts.toString());
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Fehler beim Abrufen von letzte AFK-Zeit für " + playerName + ": " + e.getMessage());
+        }
+
+        return Optional.empty();
+    }
 }
+
