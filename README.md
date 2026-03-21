@@ -91,6 +91,32 @@ command-back: "particle soul %player%"
 
 **Permission:** `antiafk.admin`
 
+## PlaceholderAPI Integration
+
+Das Plugin bietet vollständige PlaceholderAPI Integration für AFK-Statistiken!
+
+### Verfügbare Placeholders
+
+| Placeholder | Beschreibung | Beispiel |
+|---|---|---|
+| `%antiafk_total_afk_time_%player%` | Gesamte AFK-Zeit eines Spielers | `5d 3h` |
+| `%antiafk_total_afk_time_%player_name%` | Alternative zu %player% | `5d 3h` |
+| `%antiafk_afk_count_%player%` | Anzahl der AFK-Sessionen | `42` |
+| `%antiafk_afk_count_%player_name%` | Alternative zu %player% | `42` |
+| `%antiafk_last_afk_%player%` | Datum der letzten AFK-Zeit | `2026-03-21 20:15:30` |
+| `%antiafk_last_afk_%player_name%` | Alternative zu %player% | `2026-03-21 20:15:30` |
+| `%antiafk_top_1_player%` bis `%antiafk_top_10_player%` | Top AFK-Spieler Namen | `SpielistName` |
+| `%antiafk_top_1_time%` bis `%antiafk_top_10_time%` | Top AFK-Spieler Zeit | `10d 5h` |
+
+### Beispiele
+
+```
+Spieler mit meisten AFK-Zeit: %antiafk_top_1_player% (%antiafk_top_1_time%)
+Meine AFK-Zeit: %antiafk_total_afk_time_%player%
+```
+
+**Hinweis:** `%player%` und `%player_name%` sind austauschbar und werden automatisch mit dem aktuellen Spielernamen ersetzt.
+
 ## Befreiung vom AFK-Check
 
 Gib einem Spieler diese Permission um ihn vom AFK-Check auszunehmen:

@@ -49,15 +49,24 @@ public class AFKPlaceholder extends PlaceholderExpansion {
 
         String playerName = player.getName();
 
-        if (identifier.equals("total_afk_time_" + playerName)) {
+        // Support for %antiafk_total_afk_time_%player% or %antiafk_total_afk_time_%player_name%
+        if (identifier.equals("total_afk_time_" + playerName) || 
+            identifier.equals("total_afk_time_%player%") ||
+            identifier.equals("total_afk_time_%player_name%")) {
             return getTotalAFKTime(playerName);
         }
 
-        if (identifier.equals("afk_count_" + playerName)) {
+        // Support for %antiafk_afk_count_%player% or %antiafk_afk_count_%player_name%
+        if (identifier.equals("afk_count_" + playerName) || 
+            identifier.equals("afk_count_%player%") ||
+            identifier.equals("afk_count_%player_name%")) {
             return getAFKCount(playerName);
         }
 
-        if (identifier.equals("last_afk_" + playerName)) {
+        // Support for %antiafk_last_afk_%player% or %antiafk_last_afk_%player_name%
+        if (identifier.equals("last_afk_" + playerName) || 
+            identifier.equals("last_afk_%player%") ||
+            identifier.equals("last_afk_%player_name%")) {
             return getLastAFKTime(playerName);
         }
 
