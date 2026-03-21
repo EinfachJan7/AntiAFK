@@ -29,6 +29,7 @@ public class AFKManager {
     private static final long EXTERNAL_FORCE_COOLDOWN = 1000;
     private BukkitTask afkCheckTask;
     private BukkitTask tickPollingTask;
+    private BukkitTask statsUpdateTask;
     private boolean debugMode = false;
 
     public AFKManager(AntiAFK plugin, ConfigManager configManager) {
@@ -365,6 +366,52 @@ public class AFKManager {
 
         // Starte auch Tick-Polling für passive Piston-Erkennung
         startTickPollingTask();
+
+        // Starte Stats-Update Task
+        startStatsUpdateTask();
+    }
+
+    /**
+     * Startet den Stats-Update Task für periodisches Speichern
+     */
+    private void startStatsUpdateTask() {
+        int updateInterval = configManager.getStatsUpdateInterval();
+        
+        // Wenn 0: Nur speichern beim AFK-Ende (kein Task nötig)
+        if (updateInterval <= 0) {
+            return;
+        }
+
+        int ticks = updateInterval * 20; // Convert seconds to ticks
+
+        statsUpdateTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (!configManager.isEnabled()) {
+                return;
+            }
+
+            boolean isDatabaseEnabled = configManager.isDatabaseEnabled();
+            
+            // Speichere aktuelle AFK-Sessions
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                UUID uuid = player.getUniqueId();
+                
+                // Nur wenn Spieler gerade AFK ist
+                if (currentSessionAFKStart.containsKey(uuid)) {
+                    long sessionDuration = (System.currentTimeMillis() - currentSessionAFKStart.get(uuid)) / 1000;
+                    
+                    if (isDatabaseEnabled && databaseManager != null) {
+                        databaseManager.addAFKSession(player, sessionDuration);
+                    } else if (fileStorageManager != null) {
+                        fileStorageManager.addAFKSession(player, sessionDuration);
+                    }
+                    
+                    debug("Stats aktualisiert für " + player.getName() + " (AFK seit " + sessionDuration + "s)");
+                    
+                    // Starte neue Session nach Update
+                    currentSessionAFKStart.put(uuid, System.currentTimeMillis());
+                }
+            }
+        }, ticks, ticks);
     }
 
     /**
@@ -409,6 +456,9 @@ public class AFKManager {
         }
         if (tickPollingTask != null) {
             tickPollingTask.cancel();
+        }
+        if (statsUpdateTask != null) {
+            statsUpdateTask.cancel();
         }
     }
 

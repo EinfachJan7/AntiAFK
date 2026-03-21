@@ -17,6 +17,12 @@ afk-timeout: 1200
 # Wie oft soll das Plugin prüfen ob Spieler AFK sind
 check-interval: 1
 
+# Stats-Update Intervall in Sekunden
+# Wie oft sollen die AFK-Statistiken aktualisiert/gespeichert werden
+# Wenn 0: Nur speichern wenn Spieler AFK-Status beendet
+# Standard: 60 = Alle 60 Sekunden
+stats-update-interval: 60
+
 # ====================================
 # BEFEHLE
 # ====================================

@@ -87,6 +87,10 @@ public class ConfigManager {
         return config.getString("no-permission", "§cKeine Berechtigung!");
     }
 
+    public int getStatsUpdateInterval() {
+        return config.getInt("stats-update-interval", 60);
+    }
+
     // Database Settings
     public String getDatabaseHost() {
         return config.getString("database.host", "localhost");

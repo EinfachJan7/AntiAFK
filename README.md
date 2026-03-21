@@ -38,6 +38,10 @@ afk-timeout: 300          # 5 Minuten
 # Check-Intervall (in Sekunden)
 check-interval: 20        # Alle 20 Sekunden
 
+# Stats-Update Intervall (in Sekunden)
+stats-update-interval: 60 # Alle 60 Sekunden aktualisieren
+                          # Wenn 0: Nur beim AFK-Ende speichern
+
 # Befehl wenn Spieler AFK wird
 command: "say <red>%player% ist AFK"
 
@@ -94,6 +98,20 @@ command-back: "particle soul %player%"
 ## PlaceholderAPI Integration
 
 Das Plugin bietet vollständige PlaceholderAPI Integration für AFK-Statistiken!
+
+### Stats-Update Verhalten
+
+Die AFK-Statistiken können auf zwei Arten aktualisiert werden:
+
+1. **Periodisches Update** (Standardeinstellung: 60 Sekunden):
+   - Alle X Sekunden werden die Stats der aktiven AFK-Spieler aktualisiert
+   - PlaceholderAPI-Abfragen erhalten sofort die neuen Werte
+   - Einstellen mit: `stats-update-interval: 60`
+
+2. **Nur bei AFK-Ende**:
+   - Statistiken werden nur gespeichert, wenn der Spieler AFK-Status beendet
+   - Geringere Datenbankbelastung
+   - Einstellen mit: `stats-update-interval: 0`
 
 ### Verfügbare Placeholders
 
