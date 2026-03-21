@@ -26,6 +26,7 @@ public class AFKManager {
     private final Map<UUID, Long> externalForceTime = new HashMap<>();
     private final Map<UUID, Location> lastLocationSnapshot = new HashMap<>();
     private final Map<UUID, Long> currentSessionAFKStart = new HashMap<>();
+    private final Map<UUID, Long> lastStatsSaveTime = new HashMap<>();
     private static final long EXTERNAL_FORCE_COOLDOWN = 1000;
     private BukkitTask afkCheckTask;
     private BukkitTask tickPollingTask;
@@ -319,6 +320,7 @@ public class AFKManager {
             }
             
             currentSessionAFKStart.remove(uuid);
+            lastStatsSaveTime.remove(uuid);
         }
         
         String command = configManager.getCommandBack()
@@ -397,15 +399,22 @@ public class AFKManager {
                 
                 // Nur wenn Spieler gerade AFK ist
                 if (currentSessionAFKStart.containsKey(uuid)) {
-                    long sessionDuration = (System.currentTimeMillis() - currentSessionAFKStart.get(uuid)) / 1000;
+                    long now = System.currentTimeMillis();
+                    // Berechne nur die Zeit seit dem letzten Speichern (oder von AFK-Start wenn noch nie gespeichert)
+                    long lastSaveTime = lastStatsSaveTime.getOrDefault(uuid, currentSessionAFKStart.get(uuid));
+                    long sessionDuration = (now - lastSaveTime) / 1000;
                     
-                    if (isDatabaseEnabled && databaseManager != null) {
-                        databaseManager.addAFKSession(player, sessionDuration);
-                    } else if (fileStorageManager != null) {
-                        fileStorageManager.addAFKSession(player, sessionDuration);
+                    if (sessionDuration > 0) {
+                        if (isDatabaseEnabled && databaseManager != null) {
+                            databaseManager.addAFKSession(player, sessionDuration);
+                        } else if (fileStorageManager != null) {
+                            fileStorageManager.addAFKSession(player, sessionDuration);
+                        }
+                        
+                        // Aktualisiere Speicherzeit nach erfolgreicher Speicherung
+                        lastStatsSaveTime.put(uuid, now);
+                        debug("Stats aktualisiert für " + player.getName() + " (+" + sessionDuration + "s)");
                     }
-                    
-                    debug("Stats aktualisiert für " + player.getName() + " (AFK seit " + sessionDuration + "s)");
                 }
             }
         }, ticks, ticks);
@@ -483,6 +492,7 @@ public class AFKManager {
         afkCommandExecuted.remove(uuid);
         externalForceTime.remove(uuid);
         lastLocationSnapshot.remove(uuid);
+        lastStatsSaveTime.remove(uuid);
     }
 
     /**
