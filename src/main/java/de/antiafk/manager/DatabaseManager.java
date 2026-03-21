@@ -151,6 +151,13 @@ public class DatabaseManager {
     }
 
     /**
+     * Gibt den DataSource zurück (für DataConverter)
+     */
+    public com.zaxxer.hikari.HikariDataSource getDataSource() {
+        return dataSource;
+    }
+
+    /**
      * Öffentliche Methode um AFK-Session zu speichern (wird vom AFKManager aufgerufen)
      */
     public void addAFKSession(Player player, long afkTimeSeconds) {

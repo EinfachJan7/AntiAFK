@@ -4,6 +4,8 @@ import de.antiafk.AntiAFK;
 import de.antiafk.manager.AFKManager;
 import de.antiafk.manager.ConfigManager;
 import de.antiafk.manager.DatabaseManager;
+import de.antiafk.manager.FileStorageManager;
+import de.antiafk.manager.DataConverter;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -18,11 +20,16 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
     private final AFKManager afkManager;
     private final ConfigManager configManager;
     private final DatabaseManager databaseManager;
+    private final FileStorageManager fileStorageManager;
+    private final DataConverter dataConverter;
 
-    public AntiAFKCommand(AntiAFK plugin, AFKManager afkManager, ConfigManager configManager, DatabaseManager databaseManager) {
+    public AntiAFKCommand(AntiAFK plugin, AFKManager afkManager, ConfigManager configManager, 
+                         DatabaseManager databaseManager, FileStorageManager fileStorageManager, DataConverter dataConverter) {
         this.afkManager = afkManager;
         this.configManager = configManager;
         this.databaseManager = databaseManager;
+        this.fileStorageManager = fileStorageManager;
+        this.dataConverter = dataConverter;
     }
 
     @Override
@@ -58,12 +65,20 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
                 showPlayerStats(sender, args[1]);
             }
             case "top" -> showTopPlayers(sender);
+            case "convert" -> {
+                if (args.length < 2) {
+                    sender.sendMessage("<#FFB3BA>Benutzung: /antiafk convert <file-to-db | db-to-file>");
+                    return true;
+                }
+                handleConvert(sender, args[1]);
+            }
             default -> {
                 sender.sendMessage(configManager.getHelpStatus());
                 sender.sendMessage(configManager.getHelpReload());
                 sender.sendMessage("<#FFFFBA>/antiafk check <Spieler> <#90EE90>- Prüft wie lange der Spieler AFK ist");
                 sender.sendMessage("<#FFFFBA>/antiafk stats <Spieler> <#90EE90>- Zeigt AFK-Statistiken des Spielers");
                 sender.sendMessage("<#FFFFBA>/antiafk top <#90EE90>- Zeigt Top-10 AFK-Spieler");
+                sender.sendMessage("<#FFFFBA>/antiafk convert <file-to-db | db-to-file> <#90EE90>- Konvertiert Daten");
                 sender.sendMessage("<#FFFFBA>/antiafk debug <#90EE90>- Toggled Debug-Modus AN/AUS");
             }
         }
@@ -80,9 +95,8 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
 
         if (args.length == 1) {
-            // Erste Argument - Subcommands
             String prefix = args[0].toLowerCase();
-            List<String> subCommands = Arrays.asList("status", "reload", "check", "stats", "top", "debug");
+            List<String> subCommands = Arrays.asList("status", "reload", "check", "stats", "top", "convert", "debug");
             
             for (String subCommand : subCommands) {
                 if (subCommand.startsWith(prefix)) {
@@ -90,14 +104,23 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
                 }
             }
         } else if (args.length == 2) {
-            // Zweites Argument - Spielernamen für check und stats
             String subCommand = args[0].toLowerCase();
+            
             if ((subCommand.equals("check") || subCommand.equals("stats")) && sender instanceof Player) {
                 String prefix = args[1].toLowerCase();
                 
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (player.getName().toLowerCase().startsWith(prefix)) {
                         completions.add(player.getName());
+                    }
+                }
+            } else if (subCommand.equals("convert")) {
+                String prefix = args[1].toLowerCase();
+                List<String> convertTypes = Arrays.asList("file-to-db", "db-to-file");
+                
+                for (String type : convertTypes) {
+                    if (type.startsWith(prefix)) {
+                        completions.add(type);
                     }
                 }
             }
@@ -119,10 +142,14 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(configManager.getStatusMessagePlayers()
             .replace("%players%", String.valueOf(Bukkit.getOnlinePlayers().size())));
         
-        if (databaseManager.isConnected()) {
-            sender.sendMessage("<#BAFFC9>✓ Datenbank: <#90EE90>VERBUNDEN");
+        if (configManager.isDatabaseEnabled()) {
+            if (databaseManager.isConnected()) {
+                sender.sendMessage("<#BAFFC9>✓ Storage: <#90EE90>DATENBANK (verbunden)");
+            } else {
+                sender.sendMessage("<#FFB3BA>✗ Storage: <#FF6B6B>DATENBANK (getrennt)");
+            }
         } else {
-            sender.sendMessage("<#FFB3BA>✗ Datenbank: <#FF6B6B>GETRENNT");
+            sender.sendMessage("<#BAFFC9>✓ Storage: <#90EE90>DATEI");
         }
     }
 
@@ -131,9 +158,11 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
             configManager.reloadConfig();
             afkManager.stopAfkCheckTask();
             
-            // Reconnect zur Datenbank
+            // Reconnect zur Datenbank oder reload File Storage
             if (configManager.isDatabaseEnabled()) {
                 databaseManager.reconnect();
+            } else {
+                fileStorageManager.initialize();
             }
             
             afkManager.startAfkCheckTask();
@@ -182,11 +211,8 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
     }
 
     private void showPlayerStats(CommandSender sender, String playerName) {
-        if (!databaseManager.isConnected()) {
-            sender.sendMessage("<#FFB3BA>❌ Datenbank nicht verbunden!");
-            return;
-        }
-
+        boolean isDatabaseEnabled = configManager.isDatabaseEnabled();
+        
         // Versuche UUID vom Namen zu bekommen
         Player onlinePlayer = Bukkit.getPlayer(playerName);
         UUID playerUUID = null;
@@ -203,7 +229,9 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-        Map<String, Object> stats = databaseManager.getPlayerStats(playerUUID);
+        Map<String, Object> stats = isDatabaseEnabled ?
+            databaseManager.getPlayerStats(playerUUID) :
+            fileStorageManager.getPlayerStats(playerUUID);
 
         if (stats.isEmpty()) {
             sender.sendMessage("<#FFB3BA>❌ Keine Statistiken für <#E0BBE4>" + playerName + " <#FFB3BA>gefunden!");
@@ -222,12 +250,11 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
     }
 
     private void showTopPlayers(CommandSender sender) {
-        if (!databaseManager.isConnected()) {
-            sender.sendMessage("<#FFB3BA>❌ Datenbank nicht verbunden!");
-            return;
-        }
-
-        List<Map<String, Object>> topPlayers = databaseManager.getTopAFKPlayers(10);
+        boolean isDatabaseEnabled = configManager.isDatabaseEnabled();
+        
+        List<Map<String, Object>> topPlayers = isDatabaseEnabled ?
+            databaseManager.getTopAFKPlayers(10) :
+            fileStorageManager.getTopAFKPlayers(10);
 
         if (topPlayers.isEmpty()) {
             sender.sendMessage("<#FFB3BA>❌ Keine AFK-Statistiken verfügbar!");
@@ -246,6 +273,25 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("<#FFFFBA>#" + rank + " <#E0BBE4>" + playerName + 
                     " <#90EE90>- " + formattedTime + " <#BAE1FF>(" + afkCount + "x)");
             rank++;
+        }
+    }
+
+    private void handleConvert(CommandSender sender, String convertType) {
+        if (convertType.equalsIgnoreCase("file-to-db")) {
+            if (!configManager.isDatabaseEnabled()) {
+                sender.sendMessage("<#FFB3BA>❌ Datenbank ist nicht aktiviert!");
+                return;
+            }
+            dataConverter.convertFileToDatabase(sender);
+        } else if (convertType.equalsIgnoreCase("db-to-file")) {
+            if (!configManager.isDatabaseEnabled()) {
+                sender.sendMessage("<#FFB3BA>❌ Datenbank ist nicht aktiviert!");
+                return;
+            }
+            dataConverter.convertDatabaseToFile(sender);
+        } else {
+            sender.sendMessage("<#FFB3BA>Ungültiger Konvertierungstyp!");
+            sender.sendMessage("<#FFFFBA>/antiafk convert <file-to-db | db-to-file>");
         }
     }
 

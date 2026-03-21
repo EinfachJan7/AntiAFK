@@ -18,6 +18,7 @@ public class AFKManager {
     private final AntiAFK plugin;
     private final ConfigManager configManager;
     private DatabaseManager databaseManager;
+    private FileStorageManager fileStorageManager;
     private final Map<UUID, Location> lastValidPosition = new HashMap<>();
     private final Map<UUID, Long> afkStartTime = new HashMap<>();
     private final Map<UUID, Long> lastMovementTime = new HashMap<>();
@@ -40,6 +41,13 @@ public class AFKManager {
      */
     public void setDatabaseManager(DatabaseManager databaseManager) {
         this.databaseManager = databaseManager;
+    }
+
+    /**
+     * Setzt den FileStorageManager
+     */
+    public void setFileStorageManager(FileStorageManager fileStorageManager) {
+        this.fileStorageManager = fileStorageManager;
     }
 
     /**
@@ -290,6 +298,7 @@ public class AFKManager {
         }
     }
 
+
     /**
      * Führt Back-Befehl aus wenn Spieler nicht mehr AFK ist.
      * Wird nur aufgerufen wenn afkCommandExecuted == true (Spieler war wirklich AFK).
@@ -297,10 +306,17 @@ public class AFKManager {
     public void executeBackCommand(Player player) {
         UUID uuid = player.getUniqueId();
         
-        // Speichere AFK-Zeit in Datenbank
-        if (databaseManager != null && currentSessionAFKStart.containsKey(uuid)) {
+        // Speichere AFK-Zeit in Datenbank oder Datei
+        if (currentSessionAFKStart.containsKey(uuid)) {
             long sessionDuration = (System.currentTimeMillis() - currentSessionAFKStart.get(uuid)) / 1000;
-            databaseManager.addAFKSession(player, sessionDuration);
+            
+            boolean isDatabaseEnabled = configManager.isDatabaseEnabled();
+            if (isDatabaseEnabled && databaseManager != null) {
+                databaseManager.addAFKSession(player, sessionDuration);
+            } else if (fileStorageManager != null) {
+                fileStorageManager.addAFKSession(player, sessionDuration);
+            }
+            
             currentSessionAFKStart.remove(uuid);
         }
         
@@ -405,8 +421,11 @@ public class AFKManager {
         // Speichere AFK-Zeit falls aktiv
         if (currentSessionAFKStart.containsKey(uuid)) {
             long sessionDuration = (System.currentTimeMillis() - currentSessionAFKStart.get(uuid)) / 1000;
-            if (databaseManager != null) {
+            boolean isDatabaseEnabled = configManager.isDatabaseEnabled();
+            if (isDatabaseEnabled && databaseManager != null) {
                 databaseManager.addAFKSession(player, sessionDuration);
+            } else if (fileStorageManager != null) {
+                fileStorageManager.addAFKSession(player, sessionDuration);
             }
             currentSessionAFKStart.remove(uuid);
         }
