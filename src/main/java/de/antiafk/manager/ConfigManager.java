@@ -61,6 +61,10 @@ public class ConfigManager {
         return config.getString("status-message-interval", "§eCheck-Interval: §7%interval% Sekunden");
     }
 
+    public String getStatusMessageStatsUpdateInterval() {
+        return config.getString("status-message-stats-update-interval", "§b▶ Stats-Update Interval: §6%stats-update-interval% Sekunden");
+    }
+
     public String getStatusMessagePlayers() {
         return config.getString("status-message-players", "§eOnline Spieler: §7%players%");
     }

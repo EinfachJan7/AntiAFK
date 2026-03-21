@@ -50,6 +50,7 @@ status-message-enabled: "<#BAFFC9>Status: <#90EE90>AKTIV"
 status-message-disabled: "<#FFB3BA>Status: <#FF6B6B>DEAKTIV"
 status-message-timeout: "<#BAE1FF>AFK-Timeout: <#FFFFBA>%timeout% Sekunden"
 status-message-interval: "<#BAE1FF>Check-Interval: <#FFFFBA>%interval% Sekunden"
+status-message-stats-update-interval: "<#BAFFC9>▶ Stats-Update Interval: <#FFA500>%stats-update-interval% Sekunden"
 status-message-players: "<#BAE1FF>Online Spieler: <#FFFFBA>%players%"
 
 # Reload Befehle (/antiafk reload)
