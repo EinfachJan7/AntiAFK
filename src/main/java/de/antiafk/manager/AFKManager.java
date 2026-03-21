@@ -17,12 +17,14 @@ public class AFKManager {
 
     private final AntiAFK plugin;
     private final ConfigManager configManager;
+    private DatabaseManager databaseManager;
     private final Map<UUID, Location> lastValidPosition = new HashMap<>();
     private final Map<UUID, Long> afkStartTime = new HashMap<>();
     private final Map<UUID, Long> lastMovementTime = new HashMap<>();
     private final Map<UUID, Boolean> afkCommandExecuted = new HashMap<>();
     private final Map<UUID, Long> externalForceTime = new HashMap<>();
     private final Map<UUID, Location> lastLocationSnapshot = new HashMap<>();
+    private final Map<UUID, Long> currentSessionAFKStart = new HashMap<>();
     private static final long EXTERNAL_FORCE_COOLDOWN = 1000;
     private BukkitTask afkCheckTask;
     private BukkitTask tickPollingTask;
@@ -31,6 +33,13 @@ public class AFKManager {
     public AFKManager(AntiAFK plugin, ConfigManager configManager) {
         this.plugin = plugin;
         this.configManager = configManager;
+    }
+
+    /**
+     * Setzt den DatabaseManager
+     */
+    public void setDatabaseManager(DatabaseManager databaseManager) {
+        this.databaseManager = databaseManager;
     }
 
     /**
@@ -255,6 +264,11 @@ public class AFKManager {
             return;
         }
 
+        // Starte AFK-Session für Datenbank-Tracking
+        if (databaseManager != null) {
+            currentSessionAFKStart.put(uuid, System.currentTimeMillis());
+        }
+
         String command = configManager.getCommand()
                 .replace("%player%", player.getName())
                 .replace("%uuid%", player.getUniqueId().toString());
@@ -281,6 +295,15 @@ public class AFKManager {
      * Wird nur aufgerufen wenn afkCommandExecuted == true (Spieler war wirklich AFK).
      */
     public void executeBackCommand(Player player) {
+        UUID uuid = player.getUniqueId();
+        
+        // Speichere AFK-Zeit in Datenbank
+        if (databaseManager != null && currentSessionAFKStart.containsKey(uuid)) {
+            long sessionDuration = (System.currentTimeMillis() - currentSessionAFKStart.get(uuid)) / 1000;
+            databaseManager.addAFKSession(player, sessionDuration);
+            currentSessionAFKStart.remove(uuid);
+        }
+        
         String command = configManager.getCommandBack()
                 .replace("%player%", player.getName())
                 .replace("%uuid%", player.getUniqueId().toString());
@@ -378,6 +401,16 @@ public class AFKManager {
      */
     public void unregisterPlayer(Player player) {
         UUID uuid = player.getUniqueId();
+        
+        // Speichere AFK-Zeit falls aktiv
+        if (currentSessionAFKStart.containsKey(uuid)) {
+            long sessionDuration = (System.currentTimeMillis() - currentSessionAFKStart.get(uuid)) / 1000;
+            if (databaseManager != null) {
+                databaseManager.addAFKSession(player, sessionDuration);
+            }
+            currentSessionAFKStart.remove(uuid);
+        }
+        
         lastValidPosition.remove(uuid);
         afkStartTime.remove(uuid);
         lastMovementTime.remove(uuid);

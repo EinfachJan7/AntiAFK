@@ -56,3 +56,18 @@ help-reload: "<#FFFFBA>/antiafk reload <#BAE1FF>- Lädt Config neu"
 help-check: "<#FFFFBA>/antiafk check <Spieler> <#BAE1FF>- Prüft AFK-Zeit"
 no-permission: "<#FFB3BA>Keine Berechtigung!"
 
+# ====================================
+# DATENBANK EINSTELLUNGEN
+# ====================================
+
+database:
+  # Aktiviere/Deaktiviere MySQL Datenbankunterstützung
+  enabled: false
+  
+  # MySQL Server Einstellungen
+  host: "localhost"
+  port: 3306
+  name: "antiafk"
+  user: "root"
+  password: ""
+

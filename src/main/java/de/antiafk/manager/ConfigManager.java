@@ -86,4 +86,29 @@ public class ConfigManager {
     public String getNoPermission() {
         return config.getString("no-permission", "§cKeine Berechtigung!");
     }
+
+    // Database Settings
+    public String getDatabaseHost() {
+        return config.getString("database.host", "localhost");
+    }
+
+    public int getDatabasePort() {
+        return config.getInt("database.port", 3306);
+    }
+
+    public String getDatabaseName() {
+        return config.getString("database.name", "antiafk");
+    }
+
+    public String getDatabaseUser() {
+        return config.getString("database.user", "root");
+    }
+
+    public String getDatabasePassword() {
+        return config.getString("database.password", "");
+    }
+
+    public boolean isDatabaseEnabled() {
+        return config.getBoolean("database.enabled", false);
+    }
 }
