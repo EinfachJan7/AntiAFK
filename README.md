@@ -113,9 +113,10 @@ Das Plugin bietet vollständige PlaceholderAPI Integration für AFK-Statistiken!
 ```
 Spieler mit meisten AFK-Zeit: %antiafk_top_1_player% (%antiafk_top_1_time%)
 Meine AFK-Zeit: %antiafk_total_afk_time_%player%%
+Freund's AFK-Zeit: %antiafk_total_afk_time_PlayerName%
 ```
 
-**Hinweis:** `%player%` und `%player_name%` sind austauschbar und werden automatisch mit dem aktuellen Spielernamen ersetzt.
+**Hinweis:** Die inneren Variablen `%player%` und `%player_name%` werden automatisch durch PlaceholderAPI geparst und durch den aktuellen Spielernamen ersetzt. Sie können auch direkt einen Spielernamen eingeben (z.B. `%antiafk_total_afk_time_Steve%`).
 
 ## Befreiung vom AFK-Check
 

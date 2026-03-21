@@ -3,6 +3,7 @@ package de.antiafk.placeholder;
 import de.antiafk.manager.FileStorageManager;
 import de.antiafk.manager.DatabaseManager;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -47,34 +48,59 @@ public class AFKPlaceholder extends PlaceholderExpansion {
             return "";
         }
 
+        // Parse inner placeholders like %player% and %player_name%
+        String parsedIdentifier = parseInnerPlaceholders(player, identifier);
         String playerName = player.getName();
 
         // Support for %antiafk_total_afk_time_%player% or %antiafk_total_afk_time_%player_name%
-        if (identifier.equals("total_afk_time_" + playerName) || 
-            identifier.equals("total_afk_time_%player%") ||
-            identifier.equals("total_afk_time_%player_name%")) {
+        if (parsedIdentifier.equals("total_afk_time_" + playerName)) {
             return getTotalAFKTime(playerName);
         }
 
         // Support for %antiafk_afk_count_%player% or %antiafk_afk_count_%player_name%
-        if (identifier.equals("afk_count_" + playerName) || 
-            identifier.equals("afk_count_%player%") ||
-            identifier.equals("afk_count_%player_name%")) {
+        if (parsedIdentifier.equals("afk_count_" + playerName)) {
             return getAFKCount(playerName);
         }
 
         // Support for %antiafk_last_afk_%player% or %antiafk_last_afk_%player_name%
-        if (identifier.equals("last_afk_" + playerName) || 
-            identifier.equals("last_afk_%player%") ||
-            identifier.equals("last_afk_%player_name%")) {
+        if (parsedIdentifier.equals("last_afk_" + playerName)) {
             return getLastAFKTime(playerName);
         }
 
-        if (identifier.startsWith("top_")) {
-            return handleTopPlaceholder(identifier);
+        if (parsedIdentifier.startsWith("top_")) {
+            return handleTopPlaceholder(parsedIdentifier);
         }
 
         return null;
+    }
+
+    /**
+     * Parses inner placeholders like %player% and %player_name% in the identifier
+     */
+    private String parseInnerPlaceholders(Player player, String identifier) {
+        String parsed = identifier;
+        
+        // Replace %player% and %player_name% with the actual player name
+        parsed = parsed.replace("%player%", player.getName());
+        parsed = parsed.replace("%player_name%", player.getName());
+        
+        // Also try to parse with PlaceholderAPI if it contains other placeholders
+        if (parsed.contains("%")) {
+            try {
+                String result = PlaceholderAPI.setPlaceholders(player, "%" + parsed + "%");
+                // Remove the wrapper % signs we added
+                if (result.startsWith("%") && result.endsWith("%")) {
+                    parsed = result.substring(1, result.length() - 1);
+                } else {
+                    parsed = result;
+                }
+            } catch (Exception e) {
+                // If parsing fails, use the original parsed identifier
+                Bukkit.getLogger().warning("Could not parse placeholder: " + parsed);
+            }
+        }
+        
+        return parsed;
     }
 
     private String getTotalAFKTime(String playerName) {
