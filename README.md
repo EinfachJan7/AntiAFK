@@ -99,28 +99,31 @@ Das Plugin bietet vollständige PlaceholderAPI Integration für AFK-Statistiken!
 
 | Placeholder | Beschreibung | Beispiel |
 |---|---|---|
-| `%antiafk_total_afk_time_<Spielername>%` | Gesamte AFK-Zeit eines Spielers | `%antiafk_total_afk_time_Hans%` |
-| `%antiafk_afk_count_<Spielername>%` | Anzahl der AFK-Sessionen | `%antiafk_afk_count_Hans%` |
-| `%antiafk_last_afk_<Spielername>%` | Datum der letzten AFK-Zeit | `%antiafk_last_afk_Hans%` |
-| `%antiafk_top_1_player%` bis `%antiafk_top_10_player%` | Top AFK-Spieler Namen | `%antiafk_top_1_player%` |
-| `%antiafk_top_1_time%` bis `%antiafk_top_10_time%` | Top AFK-Spieler Zeit | `%antiafk_top_1_time%` |
+| `%antiafk_total_afk_time_<name>%` | AFK-Zeit eines Spielers | `%antiafk_total_afk_time_Hans%` |
+| `%antiafk_total_afk_time_player%` | AFK-Zeit des aktuellen Spielers | für den Spieler der es sieht |
+| `%antiafk_total_afk_time_player_name%` | AFK-Zeit des aktuellen Spielers (Alias) | für den Spieler der es sieht |
+| `%antiafk_afk_count_<name>%` | AFK-Sessionen eines Spielers | `%antiafk_afk_count_Hans%` |
+| `%antiafk_afk_count_player%` | AFK-Sessionen des aktuellen Spielers | für den Spieler der es sieht |
+| `%antiafk_afk_count_player_name%` | AFK-Sessionen des aktuellen Spielers (Alias) | für den Spieler der es sieht |
+| `%antiafk_last_afk_<name>%` | Letzter AFK-Zeitpunkt eines Spielers | `%antiafk_last_afk_Hans%` |
+| `%antiafk_last_afk_player%` | Letzter AFK-Zeitpunkt des aktuellen Spielers | für den Spieler der es sieht |
+| `%antiafk_last_afk_player_name%` | Letzter AFK-Zeitpunkt des aktuellen Spielers (Alias) | für den Spieler der es sieht |
+| `%antiafk_top_1_player%` ... `%antiafk_top_10_player%` | Top AFK-Spieler Namen | `%antiafk_top_1_player%` |
+| `%antiafk_top_1_time%` ... `%antiafk_top_10_time%` | Top AFK-Spieler Zeit | `%antiafk_top_1_time%` |
 
 ### Beispiele
 
 ```
 Spieler mit meisten AFK-Zeit: %antiafk_top_1_player% (%antiafk_top_1_time%)
+Meine AFK-Zeit: %antiafk_total_afk_time_player%
 Hans' AFK-Zeit: %antiafk_total_afk_time_Hans%
-Meine AFK-Sessions: %antiafk_afk_count_Spielername%
+Meine AFK-Sessions: %antiafk_afk_count_player_name%
 ```
 
-### Mit anderen Placeholders kombinieren
-
-Mit PlaceholderAPI kannst du auch andere Placeholders als Spielernamen verwenden:
-```
-%antiafk_total_afk_time_%player_name%%  → %antiafk_total_afk_time_<aktueller_Spieler>%
-```
-
-**Hinweis:** Wenn du Placeholders verschachtelst, muss die innere Placeholder zuerst aufgelöst werden!
+**Wichtig:** Es dürfen **keine verschachtelten Placeholders** in einem Placeholder sein! 
+- ✅ Richtig: `%antiafk_total_afk_time_Hans%`
+- ✅ Richtig: `%antiafk_total_afk_time_player%`
+- ❌ Falsch: `%antiafk_total_afk_time_%player%%` (zwei Placeholders in einem)
 
 ## Befreiung vom AFK-Check
 

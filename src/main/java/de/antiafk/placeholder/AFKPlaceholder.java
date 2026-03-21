@@ -50,18 +50,30 @@ public class AFKPlaceholder extends PlaceholderExpansion {
         // total_afk_time_<player>
         if (params.startsWith("total_afk_time_")) {
             String targetPlayer = params.substring("total_afk_time_".length());
+            // Wenn "player" oder "player_name" → benutze den aktuellen Spieler
+            if (targetPlayer.equals("player") || targetPlayer.equals("player_name")) {
+                targetPlayer = player.getName();
+            }
             return getTotalAFKTime(targetPlayer);
         }
 
         // afk_count_<player>
         if (params.startsWith("afk_count_")) {
             String targetPlayer = params.substring("afk_count_".length());
+            // Wenn "player" oder "player_name" → benutze den aktuellen Spieler
+            if (targetPlayer.equals("player") || targetPlayer.equals("player_name")) {
+                targetPlayer = player.getName();
+            }
             return getAFKCount(targetPlayer);
         }
 
         // last_afk_<player>
         if (params.startsWith("last_afk_")) {
             String targetPlayer = params.substring("last_afk_".length());
+            // Wenn "player" oder "player_name" → benutze den aktuellen Spieler
+            if (targetPlayer.equals("player") || targetPlayer.equals("player_name")) {
+                targetPlayer = player.getName();
+            }
             return getLastAFKTime(targetPlayer);
         }
 
