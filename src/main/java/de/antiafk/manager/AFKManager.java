@@ -406,9 +406,6 @@ public class AFKManager {
                     }
                     
                     debug("Stats aktualisiert für " + player.getName() + " (AFK seit " + sessionDuration + "s)");
-                    
-                    // Starte neue Session nach Update
-                    currentSessionAFKStart.put(uuid, System.currentTimeMillis());
                 }
             }
         }, ticks, ticks);

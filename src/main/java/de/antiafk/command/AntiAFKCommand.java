@@ -139,6 +139,7 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
             .replace("%timeout%", String.valueOf(configManager.getAfkTimeout())));
         sender.sendMessage(configManager.getStatusMessageInterval()
             .replace("%interval%", String.valueOf(configManager.getCheckInterval())));
+        sender.sendMessage("<#BAFFC9>▶ Stats-Update Interval: <#FFA500>" + configManager.getStatsUpdateInterval() + " Sekunden");
         sender.sendMessage(configManager.getStatusMessagePlayers()
             .replace("%players%", String.valueOf(Bukkit.getOnlinePlayers().size())));
         
