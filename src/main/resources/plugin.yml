@@ -4,6 +4,8 @@ main: de.antiafk.AntiAFK
 description: Ein Anti-AFK Plugin, das inaktive Spieler teleportiert oder Befehle ausführt
 api-version: "1.21"
 author: Admin
+softdepend:
+  - PlaceholderAPI
 commands:
   antiafk:
     description: AntiAFK Befehle - /antiafk status|reload|check <Spieler>
