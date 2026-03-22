@@ -67,6 +67,37 @@ command-back: "say %player% ist zurück"
 
 **Variablen:** `%player%`, `%uuid%`
 
+## Nachrichtenkonfiguration
+
+Die Ausgabetexte für Admin-Befehle können in der Config angepasst werden. Editiere `plugins/AntiAFK/config.yml` im Abschnitt `NACHRICHTEN`:
+
+```yaml
+# Status-Befehl (/antiafk status)
+status-message-header: "<#E0BBE4>=== AntiAFK Status ==="
+status-message-enabled: "<#BAFFC9>Status: <#90EE90>AKTIV"
+status-message-disabled: "<#FFB3BA>Status: <#FF6B6B>DEAKTIV"
+status-message-timeout: "<#BAE1FF>AFK-Timeout: <#FFFFBA>%timeout% Sekunden"
+status-message-interval: "<#BAE1FF>Check-Interval: <#FFFFBA>%interval% Sekunden"
+status-message-stats-update-interval: "<#BAFFC9>▶ Stats-Update Interval: <#FFA500>%stats-update-interval% Sekunden"
+status-message-players: "<#BAE1FF>Online Spieler: <#FFFFBA>%players%"
+
+# Reload-Befehl (/antiafk reload)
+reload-success: "<#BAFFC9>✓ AntiAFK Config reloaded!"
+reload-error: "<#FFB3BA>✗ Fehler beim Reload!"
+
+# Fehler- & Hilfemeldungen
+help-status: "<#FFFFBA>/antiafk <#BAE1FF>- Zeigt Status"
+help-reload: "<#FFFFBA>/antiafk reload <#BAE1FF>- Lädt Config neu"
+help-check: "<#FFFFBA>/antiafk check <Spieler> <#BAE1FF>- Prüft AFK-Zeit"
+no-permission: "<#FFB3BA>Keine Berechtigung!"
+```
+
+**Variablen in Messages:**
+- `%timeout%` - AFK-Timeout in Sekunden
+- `%interval%` - Check-Interval in Sekunden
+- `%stats-update-interval%` - Stats-Update Interval in Sekunden
+- `%players%` - Anzahl der Online-Spieler
+
 ## Beispiele
 
 ```yaml
