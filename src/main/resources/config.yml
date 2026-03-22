@@ -24,6 +24,14 @@ check-interval: 1
 stats-update-interval: 30
 
 # ====================================
+# PLACEHOLDER-EINSTELLUNGEN
+# ====================================
+
+# Zeige Sekunden in Placeholders an? (z.B. "2h 30m 45s" statt "2h 30m")
+# Standard: false = Nur Stunden/Minuten
+placeholder-show-seconds: false
+
+# ====================================
 # BEFEHLE
 # ====================================
 

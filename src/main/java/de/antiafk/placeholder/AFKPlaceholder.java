@@ -3,6 +3,7 @@ package de.antiafk.placeholder;
 import de.antiafk.manager.AFKManager;
 import de.antiafk.manager.FileStorageManager;
 import de.antiafk.manager.DatabaseManager;
+import de.antiafk.manager.ConfigManager;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -18,13 +19,15 @@ public class AFKPlaceholder extends PlaceholderExpansion {
     private final DatabaseManager databaseManager;
     private final boolean isDatabaseEnabled;
     private final AFKManager afkManager;
+    private final ConfigManager configManager;
 
     public AFKPlaceholder(FileStorageManager fileStorageManager, DatabaseManager databaseManager,
-                          boolean isDatabaseEnabled, AFKManager afkManager) {
+                          boolean isDatabaseEnabled, AFKManager afkManager, ConfigManager configManager) {
         this.fileStorageManager = fileStorageManager;
         this.databaseManager = databaseManager;
         this.isDatabaseEnabled = isDatabaseEnabled;
         this.afkManager = afkManager;
+        this.configManager = configManager;
     }
 
     @Override
@@ -118,7 +121,8 @@ public class AFKPlaceholder extends PlaceholderExpansion {
         }
 
         // Formatierte Zeit zurückgeben
-        return formatTime(savedSeconds);
+        boolean showSeconds = configManager != null && configManager.isPlaceholderShowSeconds();
+        return formatTime(savedSeconds, showSeconds);
     }
 
     private String getAFKCount(String playerName) {
@@ -156,6 +160,7 @@ public class AFKPlaceholder extends PlaceholderExpansion {
 
             int position = Integer.parseInt(parts[1]) - 1;
             String dataType = parts[2];
+            boolean showSeconds = configManager != null && configManager.isPlaceholderShowSeconds();
 
             if (isDatabaseEnabled && databaseManager != null) {
                 List<Map<String, Object>> topPlayers = databaseManager.getTopAFKPlayers(10);
@@ -165,7 +170,7 @@ public class AFKPlaceholder extends PlaceholderExpansion {
                         return (String) entry.get("playerName");
                     } else if (dataType.equals("time")) {
                         long seconds = (long) entry.get("totalAFKTime");
-                        return formatTime(seconds);
+                        return formatTime(seconds, showSeconds);
                     }
                 }
             } else if (fileStorageManager != null) {
@@ -176,7 +181,7 @@ public class AFKPlaceholder extends PlaceholderExpansion {
                         return (String) entry.get("playerName");
                     } else if (dataType.equals("time")) {
                         long seconds = (long) entry.get("totalAFKTime");
-                        return formatTime(seconds);
+                        return formatTime(seconds, showSeconds);
                     }
                 }
             }
@@ -226,7 +231,7 @@ public class AFKPlaceholder extends PlaceholderExpansion {
         return 0;
     }
 
-    private String formatTime(long totalSeconds) {
+    private String formatTime(long totalSeconds, boolean showSeconds) {
         if (totalSeconds < 60) {
             return totalSeconds + " Sekunden";
         } else if (totalSeconds < 3600) {
@@ -235,10 +240,20 @@ public class AFKPlaceholder extends PlaceholderExpansion {
         } else if (totalSeconds < 86400) {
             long hours = totalSeconds / 3600;
             long minutes = (totalSeconds % 3600) / 60;
+            long seconds = totalSeconds % 60;
+            
+            if (showSeconds && seconds > 0) {
+                return hours + "h " + minutes + "m " + seconds + "s";
+            }
             return hours + "h " + minutes + "m";
         } else {
             long days = totalSeconds / 86400;
             long hours = (totalSeconds % 86400) / 3600;
+            long minutes = (totalSeconds % 3600) / 60;
+            
+            if (showSeconds && minutes > 0) {
+                return days + "d " + hours + "h " + minutes + "m";
+            }
             return days + "d " + hours + "h";
         }
     }

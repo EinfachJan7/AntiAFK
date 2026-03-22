@@ -149,6 +149,11 @@ public class ConfigManager {
         return config.getString("reset-player-not-found", "<#FFB3BA>❌ Spieler <#E0BBE4>%player% <#FFB3BA>nicht gefunden!");
     }
 
+    // Placeholder Settings
+    public boolean isPlaceholderShowSeconds() {
+        return config.getBoolean("placeholder-show-seconds", false);
+    }
+
     public int getStatsUpdateInterval() {
         return config.getInt("stats-update-interval", 60);
     }
