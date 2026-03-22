@@ -204,6 +204,35 @@ public class DatabaseManager {
         }
     }
 
+    /**
+     * Setzt Spielerstatistiken zurück
+     */
+    public void resetPlayerStats(UUID uuid, String resetType) {
+        if (!isConnected) {
+            plugin.getLogger().warning("DB nicht verbunden – Stats konnten nicht zurückgesetzt werden");
+            return;
+        }
+
+        try (Connection conn = dataSource.getConnection()) {
+            String sql = switch (resetType) {
+                case "time" -> "UPDATE afk_statistics SET total_afk_time = 0 WHERE uuid = ?";
+                case "count" -> "UPDATE afk_statistics SET afk_count = 0 WHERE uuid = ?";
+                case "all" -> "UPDATE afk_statistics SET total_afk_time = 0, afk_count = 0 WHERE uuid = ?";
+                default -> null;
+            };
+
+            if (sql != null) {
+                try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                    stmt.setString(1, uuid.toString());
+                    stmt.executeUpdate();
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Fehler beim Zurücksetzen der Stats: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Abfragen
     // -------------------------------------------------------------------------
@@ -249,6 +278,32 @@ public class DatabaseManager {
             }
         } catch (SQLException e) {
             plugin.getLogger().severe("Fehler beim Abrufen von Spielerstatistiken: " + e.getMessage());
+        }
+        return stats;
+    }
+
+    public Map<String, Object> getPlayerStatsByName(String playerName) {
+        Map<String, Object> stats = new HashMap<>();
+        if (!isConnected || playerName == null) return stats;
+
+        try (Connection conn = dataSource.getConnection()) {
+            String query = "SELECT uuid, player_name, total_afk_time, afk_count, last_afk_date, first_recorded " +
+                    "FROM afk_statistics WHERE player_name = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, playerName);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        stats.put("uuid", rs.getString("uuid"));
+                        stats.put("playerName", rs.getString("player_name"));
+                        stats.put("totalAFKTime", rs.getLong("total_afk_time"));
+                        stats.put("afkCount", rs.getInt("afk_count"));
+                        stats.put("lastAFKDate", rs.getTimestamp("last_afk_date"));
+                        stats.put("firstRecorded", rs.getTimestamp("first_recorded"));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Fehler beim Abrufen von Spielerstatistiken nach Name: " + e.getMessage());
         }
         return stats;
     }

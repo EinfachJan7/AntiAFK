@@ -7,7 +7,10 @@ Ein einfaches Anti-AFK Plugin für Minecraft 1.21.8 (Spigot/Paper) - erkennt ina
 ✅ **Automatische AFK-Erkennung** - Führt Befehle nach konfigurierbarer Inaktivitätszeit aus
 ✅ **Robuste Umgehungserkennung** - Erkennt passive Bewegungen (Wasser, Loren, Fahrzeuge, Pistons, Knockback)
 ✅ **Back-Command** - Separater Befehl wenn Spieler AFK-Status verlässt
+✅ **AFK-Statistiken** - Verwalte und verfolge AFK-Zeiten mit Datenbank- oder Dateispeicher
+✅ **Offline-Player Support** - Abfrage und Reset von Stats für Offline-Spieler
 ✅ **MiniMessage Support** - Formatiere Nachrichten mit Farben & Styles
+✅ **PlaceholderAPI** - Umfangreiche Placeholders für AFK-Statistiken
 ✅ **Einfache Konfiguration** - Nur wenige Einstellungen nötig
 ✅ **Permission-System** - Spieler können vom AFK-Check befreit werden
 ✅ **Debug-Modus** - Detaillierte Logs zur Fehlersuche
@@ -33,14 +36,14 @@ Editiere `plugins/AntiAFK/config.yml`:
 enabled: true
 
 # Zeit bis AFK (in Sekunden)
-afk-timeout: 300          # 5 Minuten
+afk-timeout: 1200          # 20 Minuten
 
 # Check-Intervall (in Sekunden)
-check-interval: 20        # Alle 20 Sekunden
+check-interval: 1          # Jede Sekunde überprüfen
 
 # Stats-Update Intervall (in Sekunden)
-stats-update-interval: 60 # Alle 60 Sekunden aktualisieren
-                          # Wenn 0: Nur beim AFK-Ende speichern
+stats-update-interval: 30  # Alle 30 Sekunden aktualisieren
+                           # Wenn 0: Nur beim AFK-Ende speichern
 
 # Befehl wenn Spieler AFK wird
 command: "say <red>%player% ist AFK"
@@ -91,13 +94,20 @@ command-back: "particle soul %player%"
 | `/antiafk` oder `/antiafk status` | Zeigt Plugin-Status |
 | `/antiafk reload` | Config neu laden |
 | `/antiafk check <Spieler>` | Zeigt AFK-Zeit eines Spielers |
+| `/antiafk stats <Spieler>` | Zeigt detaillierte AFK-Statistiken eines Spielers (auch Offline) |
+| `/antiafk reset <Spieler> <time\|count\|all>` | Setzt Spieler-Stats zurück |
 | `/antiafk debug` | Debug-Modus AN/AUS |
 
 **Permission:** `antiafk.admin`
 
+**Reset-Optionen:**
+- `time` - Setzt nur die AFK-Zeit zurück
+- `count` - Setzt nur die AFK-Vorkommnisse zurück
+- `all` - Setzt alles zurück
+
 ## PlaceholderAPI Integration
 
-Das Plugin bietet vollständige PlaceholderAPI Integration für AFK-Statistiken!
+Das Plugin bietet vollständige PlaceholderAPI Integration für AFK-Statistiken! Alle Abfragen funktionieren auch für **Offline-Spieler**.
 
 ### Stats-Update Verhalten
 

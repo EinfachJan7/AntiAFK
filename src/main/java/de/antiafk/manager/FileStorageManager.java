@@ -162,6 +162,27 @@ public class FileStorageManager {
         return result;
     }
 
+    public Map<String, Object> getPlayerStatsByName(String playerName) {
+        Map<String, Object> result = new HashMap<>();
+        
+        if (playerName == null) return result;
+        
+        // Suche in der playerStats HashMap nach einem Spieler mit diesem Namen
+        for (PlayerStatsData stats : playerStats.values()) {
+            if (stats.playerName != null && stats.playerName.equalsIgnoreCase(playerName)) {
+                result.put("uuid", stats.uuid);
+                result.put("playerName", stats.playerName);
+                result.put("totalAFKTime", stats.totalAFKTime);
+                result.put("afkCount", stats.afkCount);
+                result.put("lastAFKDate", new Date(stats.lastAFKDate));
+                result.put("firstRecorded", new Date(stats.firstRecorded));
+                break;
+            }
+        }
+        
+        return result;
+    }
+
     /**
      * Gibt die Top-AFK-Spieler zurück
      */
@@ -204,6 +225,34 @@ public class FileStorageManager {
      */
     public Path getStatsFile() {
         return statsFile;
+    }
+
+    /**
+     * Setzt Spielerstatistiken zurück
+     */
+    public void resetPlayerStats(UUID uuid, String resetType) {
+        String uuidStr = uuid.toString();
+        PlayerStatsData stats = playerStats.get(uuidStr);
+        
+        if (stats == null) {
+            return;
+        }
+
+        switch (resetType) {
+            case "time":
+                stats.totalAFKTime = 0;
+                break;
+            case "count":
+                stats.afkCount = 0;
+                break;
+            case "all":
+                stats.totalAFKTime = 0;
+                stats.afkCount = 0;
+                break;
+        }
+
+        playerStats.put(uuidStr, stats);
+        saveStats();
     }
 
     /**

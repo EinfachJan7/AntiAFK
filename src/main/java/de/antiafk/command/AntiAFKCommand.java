@@ -72,6 +72,13 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
                 }
                 handleConvert(sender, args[1]);
             }
+            case "reset" -> {
+                if (args.length < 3) {
+                    sender.sendMessage("<#FFB3BA>Benutzung: /antiafk reset <Spieler> <time|count|all>");
+                    return true;
+                }
+                resetPlayerStats(sender, args[1], args[2]);
+            }
             default -> {
                 sender.sendMessage(configManager.getHelpStatus());
                 sender.sendMessage(configManager.getHelpReload());
@@ -79,6 +86,7 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage("<#FFFFBA>/antiafk stats <Spieler> <#90EE90>- Zeigt AFK-Statistiken des Spielers");
                 sender.sendMessage("<#FFFFBA>/antiafk top <#90EE90>- Zeigt Top-10 AFK-Spieler");
                 sender.sendMessage("<#FFFFBA>/antiafk convert <file-to-db | db-to-file> <#90EE90>- Konvertiert Daten");
+                sender.sendMessage("<#FFFFBA>/antiafk reset <Spieler> <time|count|all> <#90EE90>- Setzt Spieler-Stats zurück");
                 sender.sendMessage("<#FFFFBA>/antiafk debug <#90EE90>- Toggled Debug-Modus AN/AUS");
             }
         }
@@ -96,7 +104,7 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 1) {
             String prefix = args[0].toLowerCase();
-            List<String> subCommands = Arrays.asList("status", "reload", "check", "stats", "top", "convert", "debug");
+            List<String> subCommands = Arrays.asList("status", "reload", "check", "stats", "top", "convert", "debug", "reset");
             
             for (String subCommand : subCommands) {
                 if (subCommand.startsWith(prefix)) {
@@ -106,7 +114,7 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
         } else if (args.length == 2) {
             String subCommand = args[0].toLowerCase();
             
-            if ((subCommand.equals("check") || subCommand.equals("stats")) && sender instanceof Player) {
+            if ((subCommand.equals("check") || subCommand.equals("stats") || subCommand.equals("reset")) && sender instanceof Player) {
                 String prefix = args[1].toLowerCase();
                 
                 for (Player player : Bukkit.getOnlinePlayers()) {
@@ -119,6 +127,17 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
                 List<String> convertTypes = Arrays.asList("file-to-db", "db-to-file");
                 
                 for (String type : convertTypes) {
+                    if (type.startsWith(prefix)) {
+                        completions.add(type);
+                    }
+                }
+            }
+        } else if (args.length == 3) {
+            String subCommand = args[0].toLowerCase();
+            if (subCommand.equals("reset")) {
+                String prefix = args[2].toLowerCase();
+                List<String> resetTypes = Arrays.asList("time", "count", "all");
+                for (String type : resetTypes) {
                     if (type.startsWith(prefix)) {
                         completions.add(type);
                     }
@@ -215,25 +234,10 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
     private void showPlayerStats(CommandSender sender, String playerName) {
         boolean isDatabaseEnabled = configManager.isDatabaseEnabled();
         
-        // Versuche UUID vom Namen zu bekommen
-        Player onlinePlayer = Bukkit.getPlayer(playerName);
-        UUID playerUUID = null;
-
-        if (onlinePlayer != null) {
-            playerUUID = onlinePlayer.getUniqueId();
-        } else {
-            // Versuche von Offline-Spieler
-            try {
-                playerUUID = UUID.fromString(playerName);
-            } catch (IllegalArgumentException e) {
-                sender.sendMessage("<#FFB3BA>❌ Spieler <#E0BBE4>" + playerName + " <#FFB3BA>nicht gefunden!");
-                return;
-            }
-        }
-
+        // Versuche Stats BY NAME zuerst (Offline+Online)
         Map<String, Object> stats = isDatabaseEnabled ?
-            databaseManager.getPlayerStats(playerUUID) :
-            fileStorageManager.getPlayerStats(playerUUID);
+            databaseManager.getPlayerStatsByName(playerName) :
+            fileStorageManager.getPlayerStatsByName(playerName);
 
         if (stats.isEmpty()) {
             sender.sendMessage("<#FFB3BA>❌ Keine Statistiken für <#E0BBE4>" + playerName + " <#FFB3BA>gefunden!");
@@ -276,6 +280,42 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
                     " <#90EE90>- " + formattedTime + " <#BAE1FF>(" + afkCount + "x)");
             rank++;
         }
+    }
+
+    private void resetPlayerStats(CommandSender sender, String playerName, String resetType) {
+        boolean isDatabaseEnabled = configManager.isDatabaseEnabled();
+        
+        // Zuerst versuchen, Stats BY NAME zu finden (für Offline-Spieler)
+        Map<String, Object> stats = isDatabaseEnabled ?
+            databaseManager.getPlayerStatsByName(playerName) :
+            fileStorageManager.getPlayerStatsByName(playerName);
+
+        if (stats.isEmpty()) {
+            sender.sendMessage("<#FFB3BA>❌ Spieler <#E0BBE4>" + playerName + " <#FFB3BA>nicht gefunden!");
+            return;
+        }
+
+        String uuidStr = (String) stats.get("uuid");
+        UUID playerUUID = UUID.fromString(uuidStr);
+        
+        if (!resetType.equals("time") && !resetType.equals("count") && !resetType.equals("all")) {
+            sender.sendMessage("<#FFB3BA>❌ Ungültige Option: <#E0BBE4>" + resetType + " <#FFB3BA>Nutze: time|count|all");
+            return;
+        }
+
+        if (isDatabaseEnabled && databaseManager.isConnected()) {
+            databaseManager.resetPlayerStats(playerUUID, resetType);
+        } else if (fileStorageManager != null) {
+            fileStorageManager.resetPlayerStats(playerUUID, resetType);
+        }
+
+        String message = switch (resetType) {
+            case "time" -> "<#BAFFC9>✓ AFK-Zeit von <#E0BBE4>" + playerName + " <#BAFFC9>zurückgesetzt!";
+            case "count" -> "<#BAFFC9>✓ AFK-Vorkommnisse von <#E0BBE4>" + playerName + " <#BAFFC9>zurückgesetzt!";
+            case "all" -> "<#BAFFC9>✓ Alle Stats von <#E0BBE4>" + playerName + " <#BAFFC9>zurückgesetzt!";
+            default -> "";
+        };
+        sender.sendMessage(message);
     }
 
     private void handleConvert(CommandSender sender, String convertType) {
