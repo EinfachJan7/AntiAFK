@@ -103,7 +103,7 @@ public class AFKPlaceholder extends PlaceholderExpansion {
             } else if (fileStorageManager != null) {
                 saved = fileStorageManager.getPlayerAFKTime(playerName);
             } else {
-                return "0";
+                return "0 Sekunden";
             }
             savedSeconds = parseFormattedTime(saved.orElse("0"));
         } catch (Exception e) {
@@ -117,8 +117,8 @@ public class AFKPlaceholder extends PlaceholderExpansion {
             savedSeconds += sessionSeconds;
         }
 
-        // Gebe rohe Sekunden zurück (nicht formatiert)
-        return String.valueOf(savedSeconds);
+        // Formatierte Zeit zurückgeben
+        return formatTime(savedSeconds);
     }
 
     private String getAFKCount(String playerName) {
