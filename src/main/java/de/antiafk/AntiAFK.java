@@ -62,7 +62,7 @@ public class AntiAFK extends JavaPlugin implements Listener {
 
         // PlaceholderAPI registrieren (wenn verfügbar)
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            new AFKPlaceholder(fileStorageManager, databaseManager, configManager.isDatabaseEnabled()).register();
+            new AFKPlaceholder(fileStorageManager, databaseManager, configManager.isDatabaseEnabled(), afkManager).register();
             getLogger().info("PlaceholderAPI Integration aktiviert!");
         }
 

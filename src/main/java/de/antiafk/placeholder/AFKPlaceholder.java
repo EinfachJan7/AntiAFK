@@ -1,24 +1,30 @@
 package de.antiafk.placeholder;
 
+import de.antiafk.manager.AFKManager;
 import de.antiafk.manager.FileStorageManager;
 import de.antiafk.manager.DatabaseManager;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class AFKPlaceholder extends PlaceholderExpansion {
 
     private final FileStorageManager fileStorageManager;
     private final DatabaseManager databaseManager;
     private final boolean isDatabaseEnabled;
+    private final AFKManager afkManager;
 
-    public AFKPlaceholder(FileStorageManager fileStorageManager, DatabaseManager databaseManager, boolean isDatabaseEnabled) {
+    public AFKPlaceholder(FileStorageManager fileStorageManager, DatabaseManager databaseManager,
+                          boolean isDatabaseEnabled, AFKManager afkManager) {
         this.fileStorageManager = fileStorageManager;
         this.databaseManager = databaseManager;
         this.isDatabaseEnabled = isDatabaseEnabled;
+        this.afkManager = afkManager;
     }
 
     @Override
@@ -42,42 +48,36 @@ public class AFKPlaceholder extends PlaceholderExpansion {
     }
 
     @Override
-    public String onPlaceholderRequest(Player player, String params) {
-        if (player == null || params == null) {
+    public String onRequest(OfflinePlayer player, String params) {
+        if (params == null) {
             return "";
         }
 
         // total_afk_time_<player>
         if (params.startsWith("total_afk_time_")) {
             String targetPlayer = params.substring("total_afk_time_".length());
-            // Wenn "player" oder "player_name" → benutze den aktuellen Spieler
-            if (targetPlayer.equals("player") || targetPlayer.equals("player_name")) {
-                targetPlayer = player.getName();
-            }
+            targetPlayer = resolvePlayerName(player, targetPlayer);
+            if (targetPlayer == null) return "";
             return getTotalAFKTime(targetPlayer);
         }
 
         // afk_count_<player>
         if (params.startsWith("afk_count_")) {
             String targetPlayer = params.substring("afk_count_".length());
-            // Wenn "player" oder "player_name" → benutze den aktuellen Spieler
-            if (targetPlayer.equals("player") || targetPlayer.equals("player_name")) {
-                targetPlayer = player.getName();
-            }
+            targetPlayer = resolvePlayerName(player, targetPlayer);
+            if (targetPlayer == null) return "";
             return getAFKCount(targetPlayer);
         }
 
         // last_afk_<player>
         if (params.startsWith("last_afk_")) {
             String targetPlayer = params.substring("last_afk_".length());
-            // Wenn "player" oder "player_name" → benutze den aktuellen Spieler
-            if (targetPlayer.equals("player") || targetPlayer.equals("player_name")) {
-                targetPlayer = player.getName();
-            }
+            targetPlayer = resolvePlayerName(player, targetPlayer);
+            if (targetPlayer == null) return "";
             return getLastAFKTime(targetPlayer);
         }
 
-        // top_1_player, top_1_time, etc
+        // top_1_player, top_1_time, etc.
         if (params.startsWith("top_")) {
             return handleTopPlaceholder(params);
         }
@@ -85,17 +85,40 @@ public class AFKPlaceholder extends PlaceholderExpansion {
         return null;
     }
 
+    private String resolvePlayerName(OfflinePlayer player, String target) {
+        if (target.equals("player") || target.equals("player_name")) {
+            if (player == null) return null;
+            return player.getName();
+        }
+        return target;
+    }
+
     private String getTotalAFKTime(String playerName) {
+        long savedSeconds = 0;
+
         try {
+            Optional<String> saved;
             if (isDatabaseEnabled && databaseManager != null) {
-                return databaseManager.getPlayerAFKTime(playerName).orElse("0 Minuten");
+                saved = databaseManager.getPlayerAFKTime(playerName);
             } else if (fileStorageManager != null) {
-                return fileStorageManager.getPlayerAFKTime(playerName).orElse("0 Minuten");
+                saved = fileStorageManager.getPlayerAFKTime(playerName);
+            } else {
+                return "0";
             }
+            savedSeconds = parseFormattedTime(saved.orElse("0"));
         } catch (Exception e) {
             Bukkit.getLogger().warning("Error getting AFK time for " + playerName + ": " + e.getMessage());
         }
-        return "0 Minuten";
+
+        // Laufende (noch nicht gespeicherte) Session dazurechnen
+        Player onlinePlayer = Bukkit.getPlayerExact(playerName);
+        if (onlinePlayer != null && afkManager != null) {
+            long sessionSeconds = afkManager.getCurrentSessionSeconds(onlinePlayer);
+            savedSeconds += sessionSeconds;
+        }
+
+        // Gebe rohe Sekunden zurück (nicht formatiert)
+        return String.valueOf(savedSeconds);
     }
 
     private String getAFKCount(String playerName) {
@@ -126,14 +149,13 @@ public class AFKPlaceholder extends PlaceholderExpansion {
 
     private String handleTopPlaceholder(String identifier) {
         try {
-            // Beispiel: top_1_player, top_1_time, top_2_player, top_2_time
             String[] parts = identifier.split("_");
             if (parts.length < 3) {
                 return null;
             }
 
-            int position = Integer.parseInt(parts[1]) - 1; // Convert to 0-indexed
-            String dataType = parts[2]; // "player" oder "time"
+            int position = Integer.parseInt(parts[1]) - 1;
+            String dataType = parts[2];
 
             if (isDatabaseEnabled && databaseManager != null) {
                 List<Map<String, Object>> topPlayers = databaseManager.getTopAFKPlayers(10);
@@ -162,6 +184,46 @@ public class AFKPlaceholder extends PlaceholderExpansion {
             Bukkit.getLogger().warning("Error parsing top placeholder: " + e.getMessage());
         }
         return null;
+    }
+
+    /**
+     * Parst einen Zeitstring zurück in Sekunden.
+     * DB liefert rohe Sekunden als String (z.B. "300").
+     * FileStorage liefert formatierte Strings ("2h 30m", "45 Minuten", etc.).
+     */
+    private long parseFormattedTime(String formatted) {
+        if (formatted == null || formatted.isEmpty() || formatted.equals("0")) return 0;
+        try {
+            // Rohe Sekunden aus DB (nur Zahl, kein Text)
+            if (formatted.matches("\\d+")) {
+                return Long.parseLong(formatted);
+            }
+            // Format: "2d 3h"
+            if (formatted.contains("d") && formatted.contains("h")) {
+                String[] parts = formatted.split("d ");
+                long days = Long.parseLong(parts[0].trim());
+                long hours = Long.parseLong(parts[1].replace("h", "").trim());
+                return days * 86400 + hours * 3600;
+            }
+            // Format: "2h 30m"
+            if (formatted.contains("h") && formatted.contains("m")) {
+                String[] parts = formatted.split("h ");
+                long hours = Long.parseLong(parts[0].trim());
+                long minutes = Long.parseLong(parts[1].replace("m", "").trim());
+                return hours * 3600 + minutes * 60;
+            }
+            // Format: "45 Minuten"
+            if (formatted.contains("Minuten")) {
+                return Long.parseLong(formatted.replace("Minuten", "").trim()) * 60;
+            }
+            // Format: "30 Sekunden"
+            if (formatted.contains("Sekunden")) {
+                return Long.parseLong(formatted.replace("Sekunden", "").trim());
+            }
+        } catch (NumberFormatException e) {
+            Bukkit.getLogger().warning("[AntiAFK] Konnte Zeit nicht parsen: " + formatted);
+        }
+        return 0;
     }
 
     private String formatTime(long totalSeconds) {

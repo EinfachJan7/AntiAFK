@@ -308,15 +308,22 @@ public class AFKManager {
     public void executeBackCommand(Player player) {
         UUID uuid = player.getUniqueId();
         
-        // Speichere AFK-Zeit in Datenbank oder Datei
+        // Speichere NUR die noch nicht gespeicherten AFK-Sekunden (seit letztem Stats-Update)
         if (currentSessionAFKStart.containsKey(uuid)) {
-            long sessionDuration = (System.currentTimeMillis() - currentSessionAFKStart.get(uuid)) / 1000;
+            long now = System.currentTimeMillis();
+            long lastSaveTime = lastStatsSaveTime.getOrDefault(uuid, currentSessionAFKStart.get(uuid));
+            long unsavedDuration = (now - lastSaveTime) / 1000;
             
-            boolean isDatabaseEnabled = configManager.isDatabaseEnabled();
-            if (isDatabaseEnabled && databaseManager != null) {
-                databaseManager.addAFKSession(player, sessionDuration);
-            } else if (fileStorageManager != null) {
-                fileStorageManager.addAFKSession(player, sessionDuration);
+            if (unsavedDuration >= 0) {
+                boolean isDatabaseEnabled = configManager.isDatabaseEnabled();
+                if (isDatabaseEnabled && databaseManager != null) {
+                    // Finales Speichern mit Count-Erhöhung beim Session-Ende
+                    databaseManager.addAFKSessionFinal(player, unsavedDuration);
+                } else if (fileStorageManager != null) {
+                    // Finales Speichern mit Count-Erhöhung beim Session-Ende
+                    fileStorageManager.addAFKSessionFinal(player, unsavedDuration);
+                }
+                debug("Back-Command: Finales Speichern für " + player.getName() + " (Zeit: +" + unsavedDuration + "s, Count: +1)");
             }
             
             currentSessionAFKStart.remove(uuid);
@@ -474,14 +481,22 @@ public class AFKManager {
     public void unregisterPlayer(Player player) {
         UUID uuid = player.getUniqueId();
         
-        // Speichere AFK-Zeit falls aktiv
+        // Speichere NUR die noch nicht gespeicherten AFK-Sekunden (seit letztem Stats-Update)
         if (currentSessionAFKStart.containsKey(uuid)) {
-            long sessionDuration = (System.currentTimeMillis() - currentSessionAFKStart.get(uuid)) / 1000;
-            boolean isDatabaseEnabled = configManager.isDatabaseEnabled();
-            if (isDatabaseEnabled && databaseManager != null) {
-                databaseManager.addAFKSession(player, sessionDuration);
-            } else if (fileStorageManager != null) {
-                fileStorageManager.addAFKSession(player, sessionDuration);
+            long now = System.currentTimeMillis();
+            long lastSaveTime = lastStatsSaveTime.getOrDefault(uuid, currentSessionAFKStart.get(uuid));
+            long unsavedDuration = (now - lastSaveTime) / 1000;
+            
+            if (unsavedDuration >= 0) {
+                boolean isDatabaseEnabled = configManager.isDatabaseEnabled();
+                if (isDatabaseEnabled && databaseManager != null) {
+                    // Finales Speichern mit Count-Erhöhung beim Logout
+                    databaseManager.addAFKSessionFinal(player, unsavedDuration);
+                } else if (fileStorageManager != null) {
+                    // Finales Speichern mit Count-Erhöhung beim Logout
+                    fileStorageManager.addAFKSessionFinal(player, unsavedDuration);
+                }
+                debug("Logout: Finales Speichern für " + player.getName() + " (Zeit: +" + unsavedDuration + "s, Count: +1)");
             }
             currentSessionAFKStart.remove(uuid);
         }
@@ -521,6 +536,19 @@ public class AFKManager {
 
         long stillTimeMillis = System.currentTimeMillis() - lastMovementTime.get(uuid);
         return stillTimeMillis / 1000;
+    }
+
+    /**
+     * Gibt die laufende AFK-Session-Zeit von Anfang bis jetzt in Sekunden zurück
+     * Wird vom Placeholder benutzt um die aktuelle AFK-Zeit anzuzeigen
+     */
+    public long getCurrentSessionSeconds(Player player) {
+        UUID uuid = player.getUniqueId();
+        if (!currentSessionAFKStart.containsKey(uuid)) {
+            return 0;
+        }
+        // Berechne vom AFK-Start bis jetzt (nicht vom letzten Speichern!)
+        return (System.currentTimeMillis() - currentSessionAFKStart.get(uuid)) / 1000;
     }
 
     /**

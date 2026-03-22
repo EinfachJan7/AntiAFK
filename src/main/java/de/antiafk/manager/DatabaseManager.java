@@ -6,7 +6,6 @@ import de.antiafk.AntiAFK;
 import org.bukkit.entity.Player;
 
 import java.sql.*;
-import java.time.LocalDateTime;
 import java.util.*;
 
 public class DatabaseManager {
@@ -15,6 +14,9 @@ public class DatabaseManager {
     private final ConfigManager configManager;
     private HikariDataSource dataSource;
     private boolean isConnected = false;
+
+    // Wird nicht mehr für Session-Tracking genutzt (übernimmt AFKManager),
+    // bleibt aber für Kompatibilität (DataConverter etc.)
     private final Map<UUID, Long> sessionStartTime = new HashMap<>();
     private final Map<UUID, Long> totalSessionAFKTime = new HashMap<>();
 
@@ -23,9 +25,10 @@ public class DatabaseManager {
         this.configManager = configManager;
     }
 
-    /**
-     * Initialisiert Datenbankverbindung
-     */
+    // -------------------------------------------------------------------------
+    // Verbindung
+    // -------------------------------------------------------------------------
+
     public boolean initialize() {
         try {
             String host = configManager.getDatabaseHost();
@@ -45,8 +48,7 @@ public class DatabaseManager {
             config.setMaxLifetime(1800000);
 
             dataSource = new HikariDataSource(config);
-            
-            // Teste Verbindung
+
             try (Connection conn = dataSource.getConnection()) {
                 plugin.getLogger().info("Datenbankverbindung erfolgreich hergestellt!");
             }
@@ -63,9 +65,6 @@ public class DatabaseManager {
         }
     }
 
-    /**
-     * Erstellt die notwendigen Tabellen
-     */
     private void createTables() {
         try (Connection conn = dataSource.getConnection()) {
             String createTableSQL = "CREATE TABLE IF NOT EXISTS afk_statistics (" +
@@ -89,61 +88,84 @@ public class DatabaseManager {
         }
     }
 
-    /**
-     * Startet die AFK-Session für einen Spieler
-     */
+    public void closeConnection() {
+        try {
+            if (dataSource != null && !dataSource.isClosed()) {
+                dataSource.close();
+                isConnected = false;
+                plugin.getLogger().info("Datenbankverbindung geschlossen");
+            }
+        } catch (Exception e) {
+            plugin.getLogger().severe("Fehler beim Schließen der Datenbankverbindung: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public void reconnect() {
+        closeConnection();
+        initialize();
+    }
+
+    public boolean isConnected() {
+        return isConnected && dataSource != null && !dataSource.isClosed();
+    }
+
+    public HikariDataSource getDataSource() {
+        return dataSource;
+    }
+
+    // -------------------------------------------------------------------------
+    // Session-Tracking (Legacy – wird intern nicht mehr genutzt, bleibt für
+    // eventuelle externe Aufrufe via DataConverter o.Ä.)
+    // -------------------------------------------------------------------------
+
     public void startAFKSession(Player player) {
         sessionStartTime.put(player.getUniqueId(), System.currentTimeMillis());
         totalSessionAFKTime.put(player.getUniqueId(), 0L);
     }
 
-    /**
-     * Beendet die AFK-Session und speichert die AFK-Zeit in der Datenbank
-     */
     public void endAFKSession(Player player) {
         UUID uuid = player.getUniqueId();
-        
         if (!sessionStartTime.containsKey(uuid)) {
             return;
         }
-
         long sessionAFKTime = (System.currentTimeMillis() - sessionStartTime.get(uuid)) / 1000;
         sessionStartTime.remove(uuid);
         totalSessionAFKTime.remove(uuid);
-
         if (sessionAFKTime <= 0) {
             return;
         }
-
-        // Speichere in DB
-        addAFKTime(player, sessionAFKTime);
+        addAFKSessionFinal(player, sessionAFKTime);
     }
 
+    // -------------------------------------------------------------------------
+    // Speichern
+    // -------------------------------------------------------------------------
+
     /**
-     * Addiert AFK-Zeit für einen Spieler in die Datenbank
+     * Inkrementelles Speichern (wird regelmäßig aufgerufen, z.B. alle 30s)
+     * Erhöht NUR Zeit, nicht afk_count
      */
-    private void addAFKTime(Player player, long afkTimeSeconds) {
+    public void addAFKSession(Player player, long afkTimeSeconds) {
         if (!isConnected) {
-            plugin.getLogger().warning("Datenbankverbindung nicht hergestellt - AFK-Zeit konnte nicht gespeichert werden");
+            plugin.getLogger().warning("DB nicht verbunden – AFK-Zeit konnte nicht gespeichert werden");
             return;
         }
+        if (afkTimeSeconds <= 0) return;
 
         try (Connection conn = dataSource.getConnection()) {
-            String upsertSQL = "INSERT INTO afk_statistics (uuid, player_name, total_afk_time, afk_count) " +
-                    "VALUES (?, ?, ?, 1) " +
+            String sql = "INSERT INTO afk_statistics (uuid, player_name, total_afk_time, afk_count) " +
+                    "VALUES (?, ?, ?, 0) " +
                     "ON DUPLICATE KEY UPDATE " +
-                    "total_afk_time = total_afk_time + ?," +
-                    "afk_count = afk_count + 1," +
-                    "last_afk_date = CURRENT_TIMESTAMP";
+                    "total_afk_time = total_afk_time + VALUES(total_afk_time)," +
+                    "player_name = VALUES(player_name)";
 
-            try (PreparedStatement stmt = conn.prepareStatement(upsertSQL)) {
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setString(1, player.getUniqueId().toString());
                 stmt.setString(2, player.getName());
                 stmt.setLong(3, afkTimeSeconds);
-                stmt.setLong(4, afkTimeSeconds);
                 stmt.executeUpdate();
             }
-
         } catch (SQLException e) {
             plugin.getLogger().severe("Fehler beim Speichern von AFK-Zeit: " + e.getMessage());
             e.printStackTrace();
@@ -151,26 +173,43 @@ public class DatabaseManager {
     }
 
     /**
-     * Gibt den DataSource zurück (für DataConverter)
+     * Finales Speichern am Session-Ende
+     * Erhöht Zeit UND afk_count um 1
      */
-    public com.zaxxer.hikari.HikariDataSource getDataSource() {
-        return dataSource;
-    }
-
-    /**
-     * Öffentliche Methode um AFK-Session zu speichern (wird vom AFKManager aufgerufen)
-     */
-    public void addAFKSession(Player player, long afkTimeSeconds) {
-        addAFKTime(player, afkTimeSeconds);
-    }
-
-    /**
-     * Gibt die gesamte AFK-Zeit eines Spielers in Sekunden zurück
-     */
-    public long getTotalAFKTime(UUID uuid) {
+    public void addAFKSessionFinal(Player player, long afkTimeSeconds) {
         if (!isConnected) {
-            return 0;
+            plugin.getLogger().warning("DB nicht verbunden – AFK-Session konnte nicht beendet werden");
+            return;
         }
+        if (afkTimeSeconds < 0) return;
+
+        try (Connection conn = dataSource.getConnection()) {
+            String sql = "INSERT INTO afk_statistics (uuid, player_name, total_afk_time, afk_count) " +
+                    "VALUES (?, ?, ?, 1) " +
+                    "ON DUPLICATE KEY UPDATE " +
+                    "total_afk_time = total_afk_time + VALUES(total_afk_time)," +
+                    "afk_count = afk_count + 1," +
+                    "last_afk_date = CURRENT_TIMESTAMP," +
+                    "player_name = VALUES(player_name)";
+
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, player.getUniqueId().toString());
+                stmt.setString(2, player.getName());
+                stmt.setLong(3, afkTimeSeconds);
+                stmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Fehler beim Beenden der AFK-Session: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Abfragen
+    // -------------------------------------------------------------------------
+
+    public long getTotalAFKTime(UUID uuid) {
+        if (!isConnected) return 0;
 
         try (Connection conn = dataSource.getConnection()) {
             String query = "SELECT total_afk_time FROM afk_statistics WHERE uuid = ?";
@@ -184,21 +223,13 @@ public class DatabaseManager {
             }
         } catch (SQLException e) {
             plugin.getLogger().severe("Fehler beim Abrufen von AFK-Zeit: " + e.getMessage());
-            e.printStackTrace();
         }
-
         return 0;
     }
 
-    /**
-     * Gibt die AFK-Statistiken eines Spielers zurück
-     */
     public Map<String, Object> getPlayerStats(UUID uuid) {
         Map<String, Object> stats = new HashMap<>();
-        
-        if (!isConnected) {
-            return stats;
-        }
+        if (!isConnected) return stats;
 
         try (Connection conn = dataSource.getConnection()) {
             String query = "SELECT uuid, player_name, total_afk_time, afk_count, last_afk_date, first_recorded " +
@@ -218,21 +249,13 @@ public class DatabaseManager {
             }
         } catch (SQLException e) {
             plugin.getLogger().severe("Fehler beim Abrufen von Spielerstatistiken: " + e.getMessage());
-            e.printStackTrace();
         }
-
         return stats;
     }
 
-    /**
-     * Gibt die Top-10 AFK-Spieler zurück
-     */
     public List<Map<String, Object>> getTopAFKPlayers(int limit) {
         List<Map<String, Object>> topPlayers = new ArrayList<>();
-        
-        if (!isConnected) {
-            return topPlayers;
-        }
+        if (!isConnected) return topPlayers;
 
         try (Connection conn = dataSource.getConnection()) {
             String query = "SELECT uuid, player_name, total_afk_time, afk_count " +
@@ -252,68 +275,21 @@ public class DatabaseManager {
             }
         } catch (SQLException e) {
             plugin.getLogger().severe("Fehler beim Abrufen der Top-AFK-Spieler: " + e.getMessage());
-            e.printStackTrace();
         }
-
         return topPlayers;
     }
 
-    /**
-     * Schließt die Datenbankverbindung
-     */
-    public void closeConnection() {
-        try {
-            if (dataSource != null && !dataSource.isClosed()) {
-                dataSource.close();
-                isConnected = false;
-                plugin.getLogger().info("Datenbankverbindung geschlossen");
-            }
-        } catch (Exception e) {
-            plugin.getLogger().severe("Fehler beim Schließen der Datenbankverbindung: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
+    // -------------------------------------------------------------------------
+    // PlaceholderAPI-Methoden
+    // -------------------------------------------------------------------------
 
     /**
-     * Reconnected zur Datenbank
-     */
-    public void reconnect() {
-        closeConnection();
-        initialize();
-    }
-
-    /**
-     * Gibt an ob Verbindung aktiv ist
-     */
-    public boolean isConnected() {
-        return isConnected && dataSource != null && !dataSource.isClosed();
-    }
-
-    /**
-     * Formatiert Sekunden in ein lesbares Format
-     */
-    public static String formatTime(long seconds) {
-        long days = seconds / 86400;
-        long hours = (seconds % 86400) / 3600;
-        long minutes = (seconds % 3600) / 60;
-        long secs = seconds % 60;
-
-        StringBuilder result = new StringBuilder();
-        if (days > 0) result.append(days).append("d ");
-        if (hours > 0) result.append(hours).append("h ");
-        if (minutes > 0) result.append(minutes).append("m ");
-        result.append(secs).append("s");
-
-        return result.toString();
-    }
-
-    /**
-     * Gibt die AFK-Zeit eines Spielers (nach Name) für PlaceholderAPI zurück
+     * Gibt die gespeicherte AFK-Zeit in Sekunden zurück (als String).
+     * Der Placeholder addiert die laufende Session selbst dazu.
+     * FIX: Gibt rohe Sekunden zurück, kein formatiertes Format – vermeidet Parse-Fehler.
      */
     public Optional<String> getPlayerAFKTime(String playerName) {
-        if (!isConnected) {
-            return Optional.empty();
-        }
+        if (!isConnected) return Optional.empty();
 
         try (Connection conn = dataSource.getConnection()) {
             String query = "SELECT total_afk_time FROM afk_statistics WHERE player_name = ?";
@@ -321,25 +297,19 @@ public class DatabaseManager {
                 stmt.setString(1, playerName);
                 try (ResultSet rs = stmt.executeQuery()) {
                     if (rs.next()) {
-                        long seconds = rs.getLong("total_afk_time");
-                        return Optional.of(formatTime(seconds));
+                        // FIX: Sekunden als String zurückgeben, nicht formatiert
+                        return Optional.of(String.valueOf(rs.getLong("total_afk_time")));
                     }
                 }
             }
         } catch (SQLException e) {
             plugin.getLogger().warning("Fehler beim Abrufen von AFK-Zeit für " + playerName + ": " + e.getMessage());
         }
-
         return Optional.empty();
     }
 
-    /**
-     * Gibt die AFK-Anzahl eines Spielers (nach Name) für PlaceholderAPI zurück
-     */
     public Optional<String> getPlayerAFKCount(String playerName) {
-        if (!isConnected) {
-            return Optional.empty();
-        }
+        if (!isConnected) return Optional.empty();
 
         try (Connection conn = dataSource.getConnection()) {
             String query = "SELECT afk_count FROM afk_statistics WHERE player_name = ?";
@@ -354,17 +324,11 @@ public class DatabaseManager {
         } catch (SQLException e) {
             plugin.getLogger().warning("Fehler beim Abrufen von AFK-Anzahl für " + playerName + ": " + e.getMessage());
         }
-
         return Optional.empty();
     }
 
-    /**
-     * Gibt das letzte AFK-Datum eines Spielers (nach Name) für PlaceholderAPI zurück
-     */
     public Optional<String> getPlayerLastAFKDate(String playerName) {
-        if (!isConnected) {
-            return Optional.empty();
-        }
+        if (!isConnected) return Optional.empty();
 
         try (Connection conn = dataSource.getConnection()) {
             String query = "SELECT last_afk_date FROM afk_statistics WHERE player_name = ?";
@@ -380,10 +344,27 @@ public class DatabaseManager {
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().warning("Fehler beim Abrufen von letzte AFK-Zeit für " + playerName + ": " + e.getMessage());
+            plugin.getLogger().warning("Fehler beim Abrufen von letzter AFK-Zeit für " + playerName + ": " + e.getMessage());
         }
-
         return Optional.empty();
     }
-}
 
+    // -------------------------------------------------------------------------
+    // Hilfsmethoden
+    // -------------------------------------------------------------------------
+
+    public static String formatTime(long seconds) {
+        long days = seconds / 86400;
+        long hours = (seconds % 86400) / 3600;
+        long minutes = (seconds % 3600) / 60;
+        long secs = seconds % 60;
+
+        StringBuilder result = new StringBuilder();
+        if (days > 0) result.append(days).append("d ");
+        if (hours > 0) result.append(hours).append("h ");
+        if (minutes > 0) result.append(minutes).append("m ");
+        result.append(secs).append("s");
+
+        return result.toString().trim();
+    }
+}

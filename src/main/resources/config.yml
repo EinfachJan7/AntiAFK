@@ -21,7 +21,7 @@ check-interval: 1
 # Wie oft sollen die AFK-Statistiken aktualisiert/gespeichert werden
 # Wenn 0: Nur speichern wenn Spieler AFK-Status beendet
 # Standard: 60 = Alle 60 Sekunden
-stats-update-interval: 60
+stats-update-interval: 30
 
 # ====================================
 # BEFEHLE

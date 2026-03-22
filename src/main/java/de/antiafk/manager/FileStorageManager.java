@@ -85,6 +85,7 @@ public class FileStorageManager {
 
     /**
      * Addiert AFK-Zeit für einen Spieler
+     * Erhöht den Count NICHT - wird regelmäßig aufgerufen (alle X Sekunden)
      */
     public void addAFKSession(Player player, long afkTimeSeconds) {
         if (afkTimeSeconds <= 0) {
@@ -97,7 +98,33 @@ public class FileStorageManager {
         stats.uuid = uuid;
         stats.playerName = player.getName();
         stats.totalAFKTime += afkTimeSeconds;
-        stats.afkCount += 1;
+        // NICHT erhöhen: stats.afkCount += 1;
+        stats.lastAFKDate = System.currentTimeMillis();
+        
+        if (stats.firstRecorded == 0) {
+            stats.firstRecorded = System.currentTimeMillis();
+        }
+
+        playerStats.put(uuid, stats);
+        saveStats();
+    }
+
+    /**
+     * Beendet eine AFK-Session und speichert FINAL
+     * Erhöht Zeit UND Count genau um 1 (nur beim Session-Ende)
+     */
+    public void addAFKSessionFinal(Player player, long afkTimeSeconds) {
+        if (afkTimeSeconds <= 0) {
+            return;
+        }
+
+        String uuid = player.getUniqueId().toString();
+        PlayerStatsData stats = playerStats.getOrDefault(uuid, new PlayerStatsData());
+        
+        stats.uuid = uuid;
+        stats.playerName = player.getName();
+        stats.totalAFKTime += afkTimeSeconds;
+        stats.afkCount += 1;  // Erhöhe COUNT nur hier beim Session-Ende!
         stats.lastAFKDate = System.currentTimeMillis();
         
         if (stats.firstRecorded == 0) {
