@@ -69,11 +69,6 @@ public class ConfigManager {
         return config.getString("status-message-players", "§eOnline Spieler: §7%players%");
     }
 
-    public String getStatusMessagePlaceholderSeconds() {
-        return config.getString("status-message-placeholder-seconds",
-            "§ePlaceholder: Sekunden anzeigen: §7%placeholder-show-seconds%");
-    }
-
     // Reload Messages
     public String getReloadSuccessMessage() {
         return config.getString("reload-success", "§aAntiAFK Config reloaded!");
@@ -166,6 +161,11 @@ public class ConfigManager {
     // Placeholder Settings
     public boolean isPlaceholderShowSeconds() {
         return config.getBoolean("placeholder-show-seconds", false);
+    }
+
+    public String getStatusMessagePlaceholderSeconds() {
+        return config.getString("status-message-placeholder-seconds",
+            "§ePlaceholder: Sekunden anzeigen: §7%placeholder-show-seconds%");
     }
 
     public int getStatsUpdateInterval() {

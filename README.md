@@ -101,7 +101,7 @@ no-permission: "<#FFB3BA>Keine Berechtigung!"
 - `%interval%` - Check-Interval in Sekunden
 - `%stats-update-interval%` - Stats-Update Interval in Sekunden
 - `%players%` - Anzahl der Online-Spieler
-- `%placeholder-show-seconds%` - `Ja` oder `Nein` (entspricht `placeholder-show-seconds` in der Config)
+   - `%placeholder-show-seconds%` - `Ja` oder `Nein` (entspricht `placeholder-show-seconds` in der Config)
 
 Weitere Texte (u. a. `/antiafk stats`): `stats-message-total-time` (`%time%`), `stats-message-average-afk-time` (`%avg%`), `stats-message-average-afk-empty` (Anzeige wenn keine AFK-Sessions), `stats-message-afk-count` (`%count%`) — siehe `config.yml`.
 
