@@ -49,6 +49,9 @@ logs/
 .env
 local.properties
 
+# Cursor / Qodo
+.qodo/
+
 # Misc
 *.swp
 *.swo
