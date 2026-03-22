@@ -159,6 +159,8 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
             .replace("%stats-update-interval%", String.valueOf(configManager.getStatsUpdateInterval())));
         sender.sendMessage(configManager.getStatusMessagePlayers()
             .replace("%players%", String.valueOf(Bukkit.getOnlinePlayers().size())));
+        sender.sendMessage(configManager.getStatusMessagePlaceholderSeconds()
+            .replace("%placeholder-show-seconds%", configManager.isPlaceholderShowSeconds() ? "Ja" : "Nein"));
         
         if (configManager.isDatabaseEnabled()) {
             if (databaseManager.isConnected()) {
@@ -246,9 +248,14 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
         long totalAFKTime = (long) stats.get("totalAFKTime");
         int afkCount = (int) stats.get("afkCount");
 
+        boolean showSec = configManager.isPlaceholderShowSeconds();
         sender.sendMessage(configManager.getStatsMessageHeader().replace("%player%", playerStatsName));
         sender.sendMessage(configManager.getStatsMessageTotalTime()
-            .replace("%time%", DatabaseManager.formatTime(totalAFKTime)));
+            .replace("%time%", DatabaseManager.formatTime(totalAFKTime, showSec)));
+        String avgPart = afkCount > 0
+            ? DatabaseManager.formatTime(totalAFKTime / afkCount, showSec)
+            : configManager.getStatsMessageAverageAfkEmpty();
+        sender.sendMessage(configManager.getStatsMessageAverageAfkTime().replace("%avg%", avgPart));
         sender.sendMessage(configManager.getStatsMessageAfkCount()
             .replace("%count%", String.valueOf(afkCount)));
     }
@@ -273,7 +280,7 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
             long totalAFKTime = (long) playerData.get("totalAFKTime");
             int afkCount = (int) playerData.get("afkCount");
 
-            String formattedTime = DatabaseManager.formatTime(totalAFKTime);
+            String formattedTime = DatabaseManager.formatTime(totalAFKTime, configManager.isPlaceholderShowSeconds());
             sender.sendMessage("<#FFFFBA>#" + rank + " <#E0BBE4>" + playerName + 
                     " <#90EE90>- " + formattedTime + " <#BAE1FF>(" + afkCount + "x)");
             rank++;

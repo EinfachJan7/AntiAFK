@@ -69,6 +69,11 @@ public class ConfigManager {
         return config.getString("status-message-players", "§eOnline Spieler: §7%players%");
     }
 
+    public String getStatusMessagePlaceholderSeconds() {
+        return config.getString("status-message-placeholder-seconds",
+            "§ePlaceholder: Sekunden anzeigen: §7%placeholder-show-seconds%");
+    }
+
     // Reload Messages
     public String getReloadSuccessMessage() {
         return config.getString("reload-success", "§aAntiAFK Config reloaded!");
@@ -110,6 +115,15 @@ public class ConfigManager {
 
     public String getStatsMessageTotalTime() {
         return config.getString("stats-message-total-time", "<#BAFFC9>Gesamt AFK-Zeit: <#FFFFBA>%time%");
+    }
+
+    public String getStatsMessageAverageAfkTime() {
+        return config.getString("stats-message-average-afk-time",
+            "<#BAFFC9>Durchschnittliche AFK-Zeit (pro Session): <#FFFFBA>%avg%");
+    }
+
+    public String getStatsMessageAverageAfkEmpty() {
+        return config.getString("stats-message-average-afk-empty", "<#808080>—");
     }
 
     public String getStatsMessageAfkCount() {

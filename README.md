@@ -45,6 +45,9 @@ check-interval: 1          # Jede Sekunde überprüfen
 stats-update-interval: 30  # Alle 30 Sekunden aktualisieren
                            # Wenn 0: Nur beim AFK-Ende speichern
 
+# PlaceholderAPI: Sekunden in Zeitangaben (gilt für alle %antiafk_*_time% und /antiafk stats)
+placeholder-show-seconds: false
+
 # Befehl wenn Spieler AFK wird
 command: "say <red>%player% ist AFK"
 
@@ -80,6 +83,7 @@ status-message-timeout: "<#BAE1FF>AFK-Timeout: <#FFFFBA>%timeout% Sekunden"
 status-message-interval: "<#BAE1FF>Check-Interval: <#FFFFBA>%interval% Sekunden"
 status-message-stats-update-interval: "<#BAFFC9>▶ Stats-Update Interval: <#FFA500>%stats-update-interval% Sekunden"
 status-message-players: "<#BAE1FF>Online Spieler: <#FFFFBA>%players%"
+status-message-placeholder-seconds: "<#BAE1FF>Placeholder: Sekunden anzeigen: <#FFFFBA>%placeholder-show-seconds%"
 
 # Reload-Befehl (/antiafk reload)
 reload-success: "<#BAFFC9>✓ AntiAFK Config reloaded!"
@@ -97,6 +101,9 @@ no-permission: "<#FFB3BA>Keine Berechtigung!"
 - `%interval%` - Check-Interval in Sekunden
 - `%stats-update-interval%` - Stats-Update Interval in Sekunden
 - `%players%` - Anzahl der Online-Spieler
+- `%placeholder-show-seconds%` - `Ja` oder `Nein` (entspricht `placeholder-show-seconds` in der Config)
+
+Weitere Texte (u. a. `/antiafk stats`): `stats-message-total-time` (`%time%`), `stats-message-average-afk-time` (`%avg%`), `stats-message-average-afk-empty` (Anzeige wenn keine AFK-Sessions), `stats-message-afk-count` (`%count%`) — siehe `config.yml`.
 
 ## Beispiele
 
@@ -144,10 +151,10 @@ Das Plugin bietet vollständige PlaceholderAPI Integration für AFK-Statistiken!
 
 Die AFK-Statistiken können auf zwei Arten aktualisiert werden:
 
-1. **Periodisches Update** (Standardeinstellung: 60 Sekunden):
+1. **Periodisches Update** (Intervall über `stats-update-interval`, z. B. 30 Sekunden):
    - Alle X Sekunden werden die Stats der aktiven AFK-Spieler aktualisiert
    - PlaceholderAPI-Abfragen erhalten sofort die neuen Werte
-   - Einstellen mit: `stats-update-interval: 60`
+   - Einstellen mit: `stats-update-interval: 60` (oder einem anderen Wert > 0)
 
 2. **Nur bei AFK-Ende**:
    - Statistiken werden nur gespeichert, wenn der Spieler AFK-Status beendet
@@ -161,6 +168,9 @@ Die AFK-Statistiken können auf zwei Arten aktualisiert werden:
 | `%antiafk_total_afk_time_<name>%` | AFK-Zeit eines Spielers | `%antiafk_total_afk_time_Hans%` |
 | `%antiafk_total_afk_time_player%` | AFK-Zeit des aktuellen Spielers | für den Spieler der es sieht |
 | `%antiafk_total_afk_time_player_name%` | AFK-Zeit des aktuellen Spielers (Alias) | für den Spieler der es sieht |
+| `%antiafk_avg_afk_time_<name>%` | Durchschnittliche AFK-Zeit pro Session (Gesamt ÷ Vorkommnisse) | `%antiafk_avg_afk_time_Hans%` |
+| `%antiafk_avg_afk_time_player%` | Durchschnitt für den aktuellen Spieler | für den Spieler der es sieht |
+| `%antiafk_avg_afk_time_player_name%` | Durchschnitt für den aktuellen Spieler (Alias) | für den Spieler der es sieht |
 | `%antiafk_afk_count_<name>%` | AFK-Sessionen eines Spielers | `%antiafk_afk_count_Hans%` |
 | `%antiafk_afk_count_player%` | AFK-Sessionen des aktuellen Spielers | für den Spieler der es sieht |
 | `%antiafk_afk_count_player_name%` | AFK-Sessionen des aktuellen Spielers (Alias) | für den Spieler der es sieht |
@@ -170,11 +180,14 @@ Die AFK-Statistiken können auf zwei Arten aktualisiert werden:
 | `%antiafk_top_1_player%` ... `%antiafk_top_10_player%` | Top AFK-Spieler Namen | `%antiafk_top_1_player%` |
 | `%antiafk_top_1_time%` ... `%antiafk_top_10_time%` | Top AFK-Spieler Zeit | `%antiafk_top_1_time%` |
 
+**Zeitformat:** Mit `placeholder-show-seconds: true` in der `config.yml` enthalten alle diese Platzhalter (inkl. Top-Liste und externe Plugins wie z. B. Leaderboards über PlaceholderAPI) Sekunden in allen Bereichen (z. B. `5m 30s`, `2h 1m 0s`). Bei `false` werden unter einer Stunde nur volle Minuten angezeigt (z. B. `5 Minuten`).
+
 ### Beispiele
 
 ```
 Spieler mit meisten AFK-Zeit: %antiafk_top_1_player% (%antiafk_top_1_time%)
 Meine AFK-Zeit: %antiafk_total_afk_time_player%
+Ø pro Session: %antiafk_avg_afk_time_player%
 Hans' AFK-Zeit: %antiafk_total_afk_time_Hans%
 Meine AFK-Sessions: %antiafk_afk_count_player_name%
 ```

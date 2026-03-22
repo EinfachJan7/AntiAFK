@@ -60,6 +60,7 @@ status-message-timeout: "<#BAE1FF>AFK-Timeout: <#FFFFBA>%timeout% Sekunden"
 status-message-interval: "<#BAE1FF>Check-Interval: <#FFFFBA>%interval% Sekunden"
 status-message-stats-update-interval: "<#BAFFC9>▶ Stats-Update Interval: <#FFA500>%stats-update-interval% Sekunden"
 status-message-players: "<#BAE1FF>Online Spieler: <#FFFFBA>%players%"
+status-message-placeholder-seconds: "<#BAE1FF>Placeholder: Sekunden anzeigen: <#FFFFBA>%placeholder-show-seconds%"
 
 # Reload Befehle (/antiafk reload)
 reload-success: "<#BAFFC9>✓ AntiAFK Config reloaded!"
@@ -76,6 +77,9 @@ no-permission: "<#FFB3BA>Keine Berechtigung!"
 # Stats Befehle (/antiafk stats)
 stats-message-header: "<#E0BBE4>=== %player% AFK-Statistiken ==="
 stats-message-total-time: "<#BAFFC9>Gesamt AFK-Zeit: <#FFFFBA>%time%"
+# Ø = Gesamtzeit / AFK-Vorkommnisse; %avg% = formatierte Zeit oder Platzhalter unten wenn 0 Sessions
+stats-message-average-afk-time: "<#BAFFC9>Durchschnittliche AFK-Zeit (pro Session): <#FFFFBA>%avg%"
+stats-message-average-afk-empty: "<#808080>—"
 stats-message-afk-count: "<#BAFFC9>AFK-Vorkommnisse: <#FFFFBA>%count%"
 stats-message-last-afk: "<#BAFFC9>Letzter AFK: <#FFFFBA>%date%"
 stats-message-first-recorded: "<#BAFFC9>Erstes Aufzeichnen: <#FFFFBA>%date%"

@@ -3,6 +3,7 @@ package de.antiafk.manager;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import de.antiafk.AntiAFK;
+import de.antiafk.util.TimeFormatUtil;
 import org.bukkit.entity.Player;
 
 import java.sql.*;
@@ -408,18 +409,7 @@ public class DatabaseManager {
     // Hilfsmethoden
     // -------------------------------------------------------------------------
 
-    public static String formatTime(long seconds) {
-        long days = seconds / 86400;
-        long hours = (seconds % 86400) / 3600;
-        long minutes = (seconds % 3600) / 60;
-        long secs = seconds % 60;
-
-        StringBuilder result = new StringBuilder();
-        if (days > 0) result.append(days).append("d ");
-        if (hours > 0) result.append(hours).append("h ");
-        if (minutes > 0) result.append(minutes).append("m ");
-        result.append(secs).append("s");
-
-        return result.toString().trim();
+    public static String formatTime(long seconds, boolean showSeconds) {
+        return TimeFormatUtil.format(seconds, showSeconds);
     }
 }

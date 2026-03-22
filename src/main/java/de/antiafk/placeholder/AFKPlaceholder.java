@@ -1,9 +1,10 @@
 package de.antiafk.placeholder;
 
 import de.antiafk.manager.AFKManager;
-import de.antiafk.manager.FileStorageManager;
 import de.antiafk.manager.DatabaseManager;
+import de.antiafk.manager.FileStorageManager;
 import de.antiafk.manager.ConfigManager;
+import de.antiafk.util.TimeFormatUtil;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -64,6 +65,14 @@ public class AFKPlaceholder extends PlaceholderExpansion {
             return getTotalAFKTime(targetPlayer);
         }
 
+        // avg_afk_time_<player> (Durchschnitt = Gesamtzeit / AFK-Vorkommnisse)
+        if (params.startsWith("avg_afk_time_")) {
+            String targetPlayer = params.substring("avg_afk_time_".length());
+            targetPlayer = resolvePlayerName(player, targetPlayer);
+            if (targetPlayer == null) return "";
+            return getAverageAFKTime(targetPlayer);
+        }
+
         // afk_count_<player>
         if (params.startsWith("afk_count_")) {
             String targetPlayer = params.substring("afk_count_".length());
@@ -96,7 +105,7 @@ public class AFKPlaceholder extends PlaceholderExpansion {
         return target;
     }
 
-    private String getTotalAFKTime(String playerName) {
+    private long getTotalAFKSeconds(String playerName) {
         long savedSeconds = 0;
 
         try {
@@ -106,23 +115,42 @@ public class AFKPlaceholder extends PlaceholderExpansion {
             } else if (fileStorageManager != null) {
                 saved = fileStorageManager.getPlayerAFKTime(playerName);
             } else {
-                return "0 Sekunden";
+                return 0;
             }
             savedSeconds = parseFormattedTime(saved.orElse("0"));
         } catch (Exception e) {
             Bukkit.getLogger().warning("Error getting AFK time for " + playerName + ": " + e.getMessage());
         }
 
-        // Laufende (noch nicht gespeicherte) Session dazurechnen
         Player onlinePlayer = Bukkit.getPlayerExact(playerName);
         if (onlinePlayer != null && afkManager != null) {
-            long sessionSeconds = afkManager.getCurrentSessionSeconds(onlinePlayer);
-            savedSeconds += sessionSeconds;
+            savedSeconds += afkManager.getCurrentSessionSeconds(onlinePlayer);
         }
 
-        // Formatierte Zeit zurückgeben
+        return savedSeconds;
+    }
+
+    private String getTotalAFKTime(String playerName) {
         boolean showSeconds = configManager != null && configManager.isPlaceholderShowSeconds();
-        return formatTime(savedSeconds, showSeconds);
+        return TimeFormatUtil.format(getTotalAFKSeconds(playerName), showSeconds);
+    }
+
+    private String getAverageAFKTime(String playerName) {
+        boolean showSeconds = configManager != null && configManager.isPlaceholderShowSeconds();
+        long total = getTotalAFKSeconds(playerName);
+        int count = parseAfkCountString(getAFKCount(playerName));
+        if (count <= 0) {
+            return TimeFormatUtil.format(0, showSeconds);
+        }
+        return TimeFormatUtil.format(total / count, showSeconds);
+    }
+
+    private static int parseAfkCountString(String raw) {
+        try {
+            return Integer.parseInt(raw == null ? "0" : raw.trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private String getAFKCount(String playerName) {
@@ -170,7 +198,7 @@ public class AFKPlaceholder extends PlaceholderExpansion {
                         return (String) entry.get("playerName");
                     } else if (dataType.equals("time")) {
                         long seconds = (long) entry.get("totalAFKTime");
-                        return formatTime(seconds, showSeconds);
+                        return TimeFormatUtil.format(seconds, showSeconds);
                     }
                 }
             } else if (fileStorageManager != null) {
@@ -181,7 +209,7 @@ public class AFKPlaceholder extends PlaceholderExpansion {
                         return (String) entry.get("playerName");
                     } else if (dataType.equals("time")) {
                         long seconds = (long) entry.get("totalAFKTime");
-                        return formatTime(seconds, showSeconds);
+                        return TimeFormatUtil.format(seconds, showSeconds);
                     }
                 }
             }
@@ -193,15 +221,21 @@ public class AFKPlaceholder extends PlaceholderExpansion {
 
     /**
      * Parst einen Zeitstring zurück in Sekunden.
-     * DB liefert rohe Sekunden als String (z.B. "300").
-     * FileStorage liefert formatierte Strings ("2h 30m", "45 Minuten", etc.).
+     * DB und FileStorage liefern rohe Sekunden als String; ältere Dateien evtl. lesbare Formate.
      */
     private long parseFormattedTime(String formatted) {
         if (formatted == null || formatted.isEmpty() || formatted.equals("0")) return 0;
         try {
-            // Rohe Sekunden aus DB (nur Zahl, kein Text)
             if (formatted.matches("\\d+")) {
                 return Long.parseLong(formatted);
+            }
+            // Format: "Xm Ys" (Minuten + Sekunden, ohne Stunden)
+            if (formatted.contains("m ") && formatted.contains("s") && !formatted.contains("h")) {
+                int mIdx = formatted.indexOf('m');
+                long minutes = Long.parseLong(formatted.substring(0, mIdx).trim());
+                String rest = formatted.substring(mIdx + 1).trim();
+                long secs = Long.parseLong(rest.replace("s", "").trim());
+                return minutes * 60 + secs;
             }
             // Format: "2d 3h"
             if (formatted.contains("d") && formatted.contains("h")) {
@@ -229,32 +263,5 @@ public class AFKPlaceholder extends PlaceholderExpansion {
             Bukkit.getLogger().warning("[AntiAFK] Konnte Zeit nicht parsen: " + formatted);
         }
         return 0;
-    }
-
-    private String formatTime(long totalSeconds, boolean showSeconds) {
-        if (totalSeconds < 60) {
-            return totalSeconds + " Sekunden";
-        } else if (totalSeconds < 3600) {
-            long minutes = totalSeconds / 60;
-            return minutes + " Minuten";
-        } else if (totalSeconds < 86400) {
-            long hours = totalSeconds / 3600;
-            long minutes = (totalSeconds % 3600) / 60;
-            long seconds = totalSeconds % 60;
-            
-            if (showSeconds && seconds > 0) {
-                return hours + "h " + minutes + "m " + seconds + "s";
-            }
-            return hours + "h " + minutes + "m";
-        } else {
-            long days = totalSeconds / 86400;
-            long hours = (totalSeconds % 86400) / 3600;
-            long minutes = (totalSeconds % 3600) / 60;
-            
-            if (showSeconds && minutes > 0) {
-                return days + "d " + hours + "h " + minutes + "m";
-            }
-            return days + "d " + hours + "h";
-        }
     }
 }

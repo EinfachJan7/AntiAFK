@@ -31,7 +31,7 @@ public class AntiAFK extends JavaPlugin implements Listener {
         configManager = new ConfigManager(this);
         afkManager = new AFKManager(this, configManager);
         databaseManager = new DatabaseManager(this, configManager);
-        fileStorageManager = new FileStorageManager(this, configManager);
+        fileStorageManager = new FileStorageManager(this);
         dataConverter = new DataConverter(this, databaseManager, fileStorageManager);
 
         // Starte FileStorage
