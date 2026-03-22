@@ -82,12 +82,9 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
             default -> {
                 sender.sendMessage(configManager.getHelpStatus());
                 sender.sendMessage(configManager.getHelpReload());
-                sender.sendMessage("<#FFFFBA>/antiafk check <Spieler> <#90EE90>- Prüft wie lange der Spieler AFK ist");
-                sender.sendMessage("<#FFFFBA>/antiafk stats <Spieler> <#90EE90>- Zeigt AFK-Statistiken des Spielers");
-                sender.sendMessage("<#FFFFBA>/antiafk top <#90EE90>- Zeigt Top-10 AFK-Spieler");
-                sender.sendMessage("<#FFFFBA>/antiafk convert <file-to-db | db-to-file> <#90EE90>- Konvertiert Daten");
-                sender.sendMessage("<#FFFFBA>/antiafk reset <Spieler> <time|count|all> <#90EE90>- Setzt Spieler-Stats zurück");
-                sender.sendMessage("<#FFFFBA>/antiafk debug <#90EE90>- Toggled Debug-Modus AN/AUS");
+                sender.sendMessage(configManager.getHelpCheck());
+                sender.sendMessage(configManager.getHelpStats());
+                sender.sendMessage(configManager.getHelpReset());
             }
         }
 
@@ -240,7 +237,8 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
             fileStorageManager.getPlayerStatsByName(playerName);
 
         if (stats.isEmpty()) {
-            sender.sendMessage("<#FFB3BA>❌ Keine Statistiken für <#E0BBE4>" + playerName + " <#FFB3BA>gefunden!");
+            String message = configManager.getStatsMessageNotFound().replace("%player%", playerName);
+            sender.sendMessage(message);
             return;
         }
 
@@ -248,11 +246,11 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
         long totalAFKTime = (long) stats.get("totalAFKTime");
         int afkCount = (int) stats.get("afkCount");
 
-        sender.sendMessage("<#E0BBE4>━━━ AFK-Statistiken: <#FFFFBA>" + playerStatsName + " <#E0BBE4>━━━");
-        sender.sendMessage("<#BAE1FF>⏱ Gesamt AFK-Zeit: <#FFFFBA>" + DatabaseManager.formatTime(totalAFKTime));
-        sender.sendMessage("<#BAE1FF>📊 AFK-Vorkommnisse: <#FFFFBA>" + afkCount);
-        sender.sendMessage("<#BAE1FF>⏰ Durchschnitt pro AFK: <#FFFFBA>" + 
-            DatabaseManager.formatTime(afkCount > 0 ? totalAFKTime / afkCount : 0));
+        sender.sendMessage(configManager.getStatsMessageHeader().replace("%player%", playerStatsName));
+        sender.sendMessage(configManager.getStatsMessageTotalTime()
+            .replace("%time%", DatabaseManager.formatTime(totalAFKTime)));
+        sender.sendMessage(configManager.getStatsMessageAfkCount()
+            .replace("%count%", String.valueOf(afkCount)));
     }
 
     private void showTopPlayers(CommandSender sender) {
@@ -291,7 +289,8 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
             fileStorageManager.getPlayerStatsByName(playerName);
 
         if (stats.isEmpty()) {
-            sender.sendMessage("<#FFB3BA>❌ Spieler <#E0BBE4>" + playerName + " <#FFB3BA>nicht gefunden!");
+            String message = configManager.getResetPlayerNotFound().replace("%player%", playerName);
+            sender.sendMessage(message);
             return;
         }
 
@@ -299,7 +298,8 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
         UUID playerUUID = UUID.fromString(uuidStr);
         
         if (!resetType.equals("time") && !resetType.equals("count") && !resetType.equals("all")) {
-            sender.sendMessage("<#FFB3BA>❌ Ungültige Option: <#E0BBE4>" + resetType + " <#FFB3BA>Nutze: time|count|all");
+            String message = configManager.getResetInvalidOption().replace("%option%", resetType);
+            sender.sendMessage(message);
             return;
         }
 
@@ -310,9 +310,9 @@ public class AntiAFKCommand implements CommandExecutor, TabCompleter {
         }
 
         String message = switch (resetType) {
-            case "time" -> "<#BAFFC9>✓ AFK-Zeit von <#E0BBE4>" + playerName + " <#BAFFC9>zurückgesetzt!";
-            case "count" -> "<#BAFFC9>✓ AFK-Vorkommnisse von <#E0BBE4>" + playerName + " <#BAFFC9>zurückgesetzt!";
-            case "all" -> "<#BAFFC9>✓ Alle Stats von <#E0BBE4>" + playerName + " <#BAFFC9>zurückgesetzt!";
+            case "time" -> configManager.getResetSuccessTime().replace("%player%", playerName);
+            case "count" -> configManager.getResetSuccessCount().replace("%player%", playerName);
+            case "all" -> configManager.getResetSuccessAll().replace("%player%", playerName);
             default -> "";
         };
         sender.sendMessage(message);

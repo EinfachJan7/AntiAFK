@@ -87,8 +87,66 @@ public class ConfigManager {
         return config.getString("help-reload", "§e/antiafk reload §7- Reloaded Config");
     }
 
+    public String getHelpCheck() {
+        return config.getString("help-check", "§e/antiafk check <Spieler> §7- Prüft AFK-Zeit");
+    }
+
+    public String getHelpStats() {
+        return config.getString("help-stats", "§e/antiafk stats <Spieler> §7- Zeigt AFK-Statistiken");
+    }
+
+    public String getHelpReset() {
+        return config.getString("help-reset", "§e/antiafk reset <Spieler> <time|count|all> §7- Setzt Stats zurück");
+    }
+
     public String getNoPermission() {
         return config.getString("no-permission", "§cKeine Berechtigung!");
+    }
+
+    // Stats Messages
+    public String getStatsMessageHeader() {
+        return config.getString("stats-message-header", "<#E0BBE4>=== %player% AFK-Statistiken ===");
+    }
+
+    public String getStatsMessageTotalTime() {
+        return config.getString("stats-message-total-time", "<#BAFFC9>Gesamt AFK-Zeit: <#FFFFBA>%time%");
+    }
+
+    public String getStatsMessageAfkCount() {
+        return config.getString("stats-message-afk-count", "<#BAFFC9>AFK-Vorkommnisse: <#FFFFBA>%count%");
+    }
+
+    public String getStatsMessageLastAfk() {
+        return config.getString("stats-message-last-afk", "<#BAFFC9>Letzter AFK: <#FFFFBA>%date%");
+    }
+
+    public String getStatsMessageFirstRecorded() {
+        return config.getString("stats-message-first-recorded", "<#BAFFC9>Erstes Aufzeichnen: <#FFFFBA>%date%");
+    }
+
+    public String getStatsMessageNotFound() {
+        return config.getString("stats-message-not-found", "<#FFB3BA>❌ Spieler <#E0BBE4>%player% <#FFB3BA>nicht gefunden!");
+    }
+
+    // Reset Messages
+    public String getResetSuccessTime() {
+        return config.getString("reset-success-time", "<#BAFFC9>✓ AFK-Zeit von <#E0BBE4>%player% <#BAFFC9>zurückgesetzt!");
+    }
+
+    public String getResetSuccessCount() {
+        return config.getString("reset-success-count", "<#BAFFC9>✓ AFK-Vorkommnisse von <#E0BBE4>%player% <#BAFFC9>zurückgesetzt!");
+    }
+
+    public String getResetSuccessAll() {
+        return config.getString("reset-success-all", "<#BAFFC9>✓ Alle Stats von <#E0BBE4>%player% <#BAFFC9>zurückgesetzt!");
+    }
+
+    public String getResetInvalidOption() {
+        return config.getString("reset-invalid-option", "<#FFB3BA>❌ Ungültige Option: <#E0BBE4>%option% <#FFB3BA>Nutze: time|count|all");
+    }
+
+    public String getResetPlayerNotFound() {
+        return config.getString("reset-player-not-found", "<#FFB3BA>❌ Spieler <#E0BBE4>%player% <#FFB3BA>nicht gefunden!");
     }
 
     public int getStatsUpdateInterval() {

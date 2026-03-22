@@ -61,7 +61,24 @@ reload-error: "<#FFB3BA>✗ Fehler beim Reload!"
 help-status: "<#FFFFBA>/antiafk <#BAE1FF>- Zeigt Status"
 help-reload: "<#FFFFBA>/antiafk reload <#BAE1FF>- Lädt Config neu"
 help-check: "<#FFFFBA>/antiafk check <Spieler> <#BAE1FF>- Prüft AFK-Zeit"
+help-stats: "<#FFFFBA>/antiafk stats <Spieler> <#BAE1FF>- Zeigt AFK-Statistiken"
+help-reset: "<#FFFFBA>/antiafk reset <Spieler> <time|count|all> <#BAE1FF>- Setzt Stats zurück"
 no-permission: "<#FFB3BA>Keine Berechtigung!"
+
+# Stats Befehle (/antiafk stats)
+stats-message-header: "<#E0BBE4>=== %player% AFK-Statistiken ==="
+stats-message-total-time: "<#BAFFC9>Gesamt AFK-Zeit: <#FFFFBA>%time%"
+stats-message-afk-count: "<#BAFFC9>AFK-Vorkommnisse: <#FFFFBA>%count%"
+stats-message-last-afk: "<#BAFFC9>Letzter AFK: <#FFFFBA>%date%"
+stats-message-first-recorded: "<#BAFFC9>Erstes Aufzeichnen: <#FFFFBA>%date%"
+stats-message-not-found: "<#FFB3BA>❌ Spieler <#E0BBE4>%player% <#FFB3BA>nicht gefunden!"
+
+# Reset Befehle (/antiafk reset)
+reset-success-time: "<#BAFFC9>✓ AFK-Zeit von <#E0BBE4>%player% <#BAFFC9>zurückgesetzt!"
+reset-success-count: "<#BAFFC9>✓ AFK-Vorkommnisse von <#E0BBE4>%player% <#BAFFC9>zurückgesetzt!"
+reset-success-all: "<#BAFFC9>✓ Alle Stats von <#E0BBE4>%player% <#BAFFC9>zurückgesetzt!"
+reset-invalid-option: "<#FFB3BA>❌ Ungültige Option: <#E0BBE4>%option% <#FFB3BA>Nutze: time|count|all"
+reset-player-not-found: "<#FFB3BA>❌ Spieler <#E0BBE4>%player% <#FFB3BA>nicht gefunden!"
 
 # ====================================
 # DATENBANK EINSTELLUNGEN
