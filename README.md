@@ -1,4 +1,3 @@
-```markdown
 # 🚫 AntiAFK
 
 Ein leichtgewichtiges Spigot/Paper Plugin das inaktive Spieler erkennt und konfigurierbare Befehle ausführt.
