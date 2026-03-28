@@ -131,4 +131,3 @@ command-back: "msg %player% <green>Willkommen zurück!"
 ---
 
 *Minecraft 1.21.8+ | Paper/Spigot kompatibel*
-```
